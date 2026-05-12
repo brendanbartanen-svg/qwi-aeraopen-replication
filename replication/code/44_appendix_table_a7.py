@@ -47,16 +47,17 @@ def state_yearly_nnjf(df_sub: pd.DataFrame, base_emp_df: pd.DataFrame | None = N
             col = f"{v}_q{q}"
             if col in panel.columns:
                 panel[f"{v}_q{q}_lag"] = panel.groupby("state")[col].shift(1)
-    # NNJF avg (consistent with our main measure, matches Table A4 totals)
-    nnjf_q = []
-    for ql in ["q3_lag","q4_lag","q1","q2"]:
-        nnjf_q.append((panel[f"fls_{ql}"] - panel[f"fgs_{ql}"]).clip(lower=0))
-    panel["nnjf"] = sum(nnjf_q) / 4
-    # Paper Table A7 values (8-19) match the SUM of 4Q FrmJbLsS (no FrmJbGnS, no clipping)
-    # divided by Q4_lag emp — yet another internal-inconsistency scale.
+    # v2 (authors' Stata code): NNJF = sum of FrmJbLsS over 4 school-year quarters.
+    # No FrmJbGnS subtraction, no averaging, no clipping.
     fls_sum = (panel["fls_q3_lag"] + panel["fls_q4_lag"] + panel["fls_q1"] + panel["fls_q2"])
-    if "e_q4_lag" in panel.columns:
-        panel["nnjf_per_100"] = 100.0 * fls_sum / panel["e_q4_lag"]
+    panel["nnjf"] = fls_sum
+    # Per-100 normalization for demographic Table A7: NNJF / (Emp_Q3_lag / 100)
+    # (Authors' Stata line 938: gen job_destruct = (frmjblss_sum) / (emptotal_q3_lag/100))
+    if "e_q3_lag" in panel.columns:
+        panel["nnjf_per_100"] = fls_sum / (panel["e_q3_lag"] / 100.0)
+    elif "e_q4_lag" in panel.columns:
+        # Fallback if Q3_lag not available
+        panel["nnjf_per_100"] = fls_sum / (panel["e_q4_lag"] / 100.0)
     else:
         panel["nnjf_per_100"] = np.nan
     return panel[["state","year","nnjf","nnjf_per_100"]].rename(columns={"year":"school_year"})
