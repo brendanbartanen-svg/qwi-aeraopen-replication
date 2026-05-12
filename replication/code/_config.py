@@ -1,7 +1,8 @@
-"""Shared configuration: paths, API key loading, target values."""
+"""Shared configuration: paths, API key loading, target values, weighted aggregations."""
 
 from pathlib import Path
 import os
+import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_RAW = REPO_ROOT / "data" / "raw"
@@ -40,3 +41,53 @@ def census_api_key() -> str:
             "(get one at https://api.census.gov/data/key_signup.html)."
         )
     return key
+
+
+def stata_aweight_sum(x, w):
+    """Reproduce Stata's `collapse (sum) x [aw=w]` exactly.
+
+    Stata's analytic weights for (sum):
+        sum(x_i * w_i * N / sum(w_j))
+    where N = number of non-missing obs.
+
+    This is what the authors use for Table A4 'NNJF Total' and Table A8 'NNJF Total'.
+    Pass `w = 1/fte` (or `1/emp_lag` as a proxy) to match the paper.
+    """
+    x = np.asarray(x, dtype=float)
+    w = np.asarray(w, dtype=float)
+    mask = (~np.isnan(x)) & (~np.isnan(w)) & (w > 0)
+    x = x[mask]; w = w[mask]
+    if len(x) == 0:
+        return float("nan")
+    N = len(x)
+    return float((x * w * N / w.sum()).sum())
+
+
+def stata_aweight_mean(x, w):
+    """Stata's `collapse (mean) x [aw=w]` — standard weighted mean."""
+    x = np.asarray(x, dtype=float)
+    w = np.asarray(w, dtype=float)
+    mask = (~np.isnan(x)) & (~np.isnan(w)) & (w > 0)
+    x = x[mask]; w = w[mask]
+    if len(x) == 0:
+        return float("nan")
+    return float((x * w).sum() / w.sum())
+
+
+def stata_aweight_quantile(x, w, q):
+    """Stata's `summarize x [aw=w], detail` percentiles.
+
+    Stata uses interpolated weighted percentile. Approximation: sort, cum-weight,
+    find first index where cumsum/total >= q.
+    """
+    x = np.asarray(x, dtype=float)
+    w = np.asarray(w, dtype=float)
+    mask = (~np.isnan(x)) & (~np.isnan(w)) & (w > 0)
+    x = x[mask]; w = w[mask]
+    if len(x) == 0:
+        return float("nan")
+    idx = np.argsort(x)
+    cw = np.cumsum(w[idx]) / w.sum()
+    i = np.searchsorted(cw, q)
+    i = min(i, len(x) - 1)
+    return float(x[idx][i])

@@ -1,33 +1,32 @@
 """Construct school-year turnover and net-negative job flow measures from quarterly QWI data.
 
-Equations 1-3 from Bleiberg & Nguyen (2026), but with two clarifications discovered during
-replication:
+v2 (incorporates authors' Stata code; see author_code/AUTHOR_CODE_FINDINGS.md):
 
-  1) TURNOVER uses QWI variables `EmpTotal` (footnote 4) and `HirN` (footnote 3).
-     Equation 1 in the paper is implemented literally.
+  1) TURNOVER (paper Eq 1): leavers = ΣHirN_4Q − ΔEmp; turnover = leavers / EmpTotal_Q4_lag.
+     Quarter window: Q3(t-1), Q4(t-1), Q1(t), Q2(t) — school year ending in t.
 
-  2) NET-NEGATIVE JOB FLOW: the paper's Eq. 2 reads NNJF_cqt = abs(emp_{q+1} - emp_q),
-     but interpreting that with `EmpTotal` produces values 5-10x larger than the paper
-     reports (because EmpTotal is highly seasonal — teachers don't work in summer).
-     The actual construct ("jobs lost at firms throughout the quarter") is the QWI
-     built-in `FrmJbLs` (Firm Job Losses), which is computed at the firm level then
-     aggregated.  Using `FrmJbLs` summed across the four school-year quarters yields
-     totals matching the paper (e.g., 2019-20 ≈ 225K nationwide).
+  2) NNJF: authors' code uses
+        NNJF = FrmJbLsS_q1 + FrmJbLsS_q2_lag + FrmJbLsS_q3_lag + FrmJbLsS_q4_lag
+     This is the SUM over 4 quarters of just FrmJbLsS (Firm Job Losses to Stable
+     Employment) — NOT averaged, NOT subtracting FrmJbGnS. The quarter window uses
+     q2_LAG (not q2 like turnover does), which is either an intentional asymmetric
+     window or a typo. We compute BOTH windows and write both to the panel:
+       nnjf_sy:     sum(FrmJbLsS) over Q3_lag + Q4_lag + Q1 + Q2 (school year)
+       nnjf_authors: sum(FrmJbLsS) over Q1 + Q2_lag + Q3_lag + Q4_lag (their literal code)
 
-For school year s ending in spring t:
-  Quarters constituting the school year: q3_{t-1}, q4_{t-1}, q1_t, q2_t
+  3) PER-100 NORMALIZATIONS: authors use different normalizations in different places.
+     We compute all three and let each appendix-table script pick the right one:
+       nnjf_per_100_simple:  NNJF / 100              (Figure 2 / Table A2 distribution)
+       nnjf_per_100_q3lag:   NNJF / (EmpTotal_Q3_lag / 100)  (demographic tables A6/A7)
+       nnjf_per_100_q3:      NNJF / (EmpTotal_Q3 / 100)      (state pandemic table A8)
 
-  Equation 1 (turnover):
-    turnover_cst = [hires_q3_{t-1} + hires_q4_{t-1} + hires_q1_t + hires_q2_t
-                    - (emp_q2_t - emp_q4_{t-1})] / emp_q4_{t-1}
-
-  Equation 3 (school-year NNJF), using FrmJbLs:
-    NNJF_cst = FrmJbLs_q3_{t-1} + FrmJbLs_q4_{t-1} + FrmJbLs_q1_t + FrmJbLs_q2_t
-
-  NNJF per 100 = 100 * NNJF / emp_q4_{t-1}
-
-Outlier rule (Footnote 2):
-  Set turnover to missing if |leavers_cy - county_mean_leavers| / county_mean_leavers >= 0.33
+  4) OUTLIER RULES (authors' code lines 278-308):
+       - Drop county-year if leavers > 1.33 × county-mean leavers
+       - Drop county-year if EmpTotal > 1.33 × county-mean EmpTotal
+       - Drop county-year if turnover > 1.33 × county-mean turnover
+       - Drop COUNTY (all years) if mean turnover >= 0.7
+     Applied successively. We keep the variable name `33% rule` (paper Footnote 2);
+     the authors' multiplier of 1.33 implements the same threshold.
 """
 
 from __future__ import annotations
@@ -108,58 +107,89 @@ def construct_school_year_measures(wide: pd.DataFrame) -> pd.DataFrame:
     merged["emp_denom"] = merged["emp_q4_lag"]
     merged["turnover"] = leavers / merged["emp_q4_lag"]
 
-    # --- Equation 3 (NNJF) ---
-    # Empirically tested 8+ variants of Eq 2-3. The best match to paper's reported NNJF
-    # TOTALS (within 1.0-1.3x for all years including 2020) comes from:
-    #     NNJF = avg(FrmJbLsS over 4 school-year quarters)
-    # where FrmJbLsS = "Firm Job Losses to Stable Employment". This captures workers
-    # who lost stable-employment status during the quarter (≈ teachers who didn't return).
-    # Per-100 rates remain ~3x larger than paper's, suggesting a different normalization
-    # we cannot reverse-engineer without the authors' code.
-    # NNJF count: net-negative firm job losses (stable employment) per quarter, averaged.
-    # Best numerator per sub-agent investigation: max(FrmJbLsS - FrmJbGnS, 0) per quarter.
-    # Matches paper Table A4 NNJF totals within ±10% every year including 2020.
-    if "frmjblss_q3_lag" in merged.columns and "frmjbgns_q3_lag" in merged.columns:
-        nnjf_quarters = []
-        for ql in ["q3_lag", "q4_lag", "q1", "q2"]:
-            losses = merged[f"frmjblss_{ql}"]
-            gains  = merged[f"frmjbgns_{ql}"]
-            nnjf_quarters.append((losses - gains).clip(lower=0))
-        nnjf_avg = sum(nnjf_quarters) / 4.0
-        merged["nnjf_source"] = "max(FrmJbLsS - FrmJbGnS, 0) (avg of 4 school-year quarters)"
-    elif "frmjblss_q3_lag" in merged.columns:
-        nnjf_avg = (merged["frmjblss_q3_lag"] + merged["frmjblss_q4_lag"]
-                    + merged["frmjblss_q1"] + merged["frmjblss_q2"]) / 4.0
-        merged["nnjf_source"] = "FrmJbLsS (avg of 4 school-year quarters) — fallback"
+    # --- NNJF (authors' formula) ---
+    # Authors' Stata: gen job_destruct = frmjblss_q1 + frmjblss_q2_lag + frmjblss_q3_lag + frmjblss_q4_lag
+    # That's SUM (not avg) of FrmJbLsS only (not subtracting FrmJbGnS).
+    # Quarter window asymmetry (q2_lag instead of q2) is either intentional or a typo;
+    # we compute BOTH windows and write both to the panel.
+    if "frmjblss_q3_lag" in merged.columns:
+        # School-year window (same window as turnover): Q3_lag + Q4_lag + Q1 + Q2
+        merged["nnjf_sy"] = (merged["frmjblss_q3_lag"] + merged["frmjblss_q4_lag"]
+                              + merged["frmjblss_q1"] + merged["frmjblss_q2"])
+        # Authors' literal window: Q1 + Q2_lag + Q3_lag + Q4_lag
+        # Need to construct Q2_lag — it's "Q2 of previous calendar year"
+        if "frmjblss_q2" in merged.columns:
+            # Build a Q2_lag by shifting within county
+            merged = merged.sort_values(["fips", "year"]).reset_index(drop=True)
+            merged["frmjblss_q2_lag"] = merged.groupby("fips")["frmjblss_q2"].shift(1)
+            merged["nnjf_authors"] = (merged["frmjblss_q1"] + merged["frmjblss_q2_lag"]
+                                       + merged["frmjblss_q3_lag"] + merged["frmjblss_q4_lag"])
+        else:
+            merged["nnjf_authors"] = pd.NA
+        merged["nnjf_source"] = "sum(FrmJbLsS over 4 quarters) per authors' Stata code"
     else:
-        nnjf_avg = (merged["frmjbls_q3_lag"] + merged["frmjbls_q4_lag"]
-                    + merged["frmjbls_q1"] + merged["frmjbls_q2"]) / 4.0
-        merged["nnjf_source"] = "FrmJbLs (avg of 4 school-year quarters) — fallback"
-    merged["nnjf"] = nnjf_avg
+        # Fallback to FrmJbLs (non-stable) if FrmJbLsS unavailable
+        merged["nnjf_sy"] = (merged["frmjbls_q3_lag"] + merged["frmjbls_q4_lag"]
+                              + merged["frmjbls_q1"] + merged["frmjbls_q2"])
+        merged["nnjf_authors"] = pd.NA
+        merged["nnjf_source"] = "sum(FrmJbLs) — fallback (FrmJbLsS unavailable)"
 
-    # Per-100 denominator: sum of EmpTotal across the 4 school-year quarters
-    # (best match per agent investigation for Table A4 annual NNJF/100 means).
-    emp_sum_sy = (merged["emp_q3_lag"] + merged["emp_q4_lag"]
-                  + merged["emp_q1"] + merged["emp_q2"])
-    merged["nnjf_per_100"] = 100.0 * nnjf_avg / emp_sum_sy
-    # Also keep Q4-lag denom (matches Table A2 pooled stats but conflicts with Table A4)
-    merged["nnjf_per_100_q4lag"] = 100.0 * nnjf_avg / merged["emp_q4_lag"]
+    # Primary NNJF column = school-year window (matches turnover's window).
+    # Downstream scripts can switch to nnjf_authors if needed.
+    merged["nnjf"] = merged["nnjf_sy"]
 
-    out = merged[[
-        "fips", "school_year", "emp_q4_lag", "emp_q2", "leavers",
-        "turnover", "nnjf", "nnjf_per_100",
-    ]].rename(columns={"emp_q4_lag": "emp_lag", "emp_q2": "emp_spring_end"})
+    # --- Per-100 normalizations (authors use three different formulas) ---
+    # Formula 1: NNJF / 100  (Figure 2 / Table A2; "per 100" is just a rescale, not a rate)
+    merged["nnjf_per_100_simple"] = merged["nnjf"] / 100.0
+    # Formula 2: NNJF / (EmpTotal_Q3_lag / 100)  (demographic tables A6/A7)
+    merged["nnjf_per_100_q3lag"] = merged["nnjf"] / (merged["emp_q3_lag"] / 100.0)
+    # Formula 3: NNJF / (EmpTotal_Q3 / 100)  (state pandemic Table A8)
+    merged["nnjf_per_100_q3"] = merged["nnjf"] / (merged["emp_q3"] / 100.0)
+    # Back-compat alias: keep `nnjf_per_100` as the simple form (matches Table A2)
+    merged["nnjf_per_100"] = merged["nnjf_per_100_simple"]
+
+    out_cols = [
+        "fips", "school_year", "emp_q4_lag", "emp_q3_lag", "emp_q3", "emp_q2", "leavers",
+        "turnover", "nnjf", "nnjf_sy", "nnjf_authors",
+        "nnjf_per_100", "nnjf_per_100_simple", "nnjf_per_100_q3lag", "nnjf_per_100_q3",
+    ]
+    out = merged[out_cols].rename(columns={"emp_q4_lag": "emp_lag", "emp_q2": "emp_spring_end"})
     return out
 
 
-def apply_outlier_rule(df: pd.DataFrame, threshold: float = 0.33) -> pd.DataFrame:
-    """Footnote 2: turnover is missing when |leavers - county_mean(leavers)| / mean >= 0.33."""
+def apply_outlier_rule(df: pd.DataFrame, multiplier: float = 1.33,
+                        county_mean_max_turnover: float = 0.7) -> pd.DataFrame:
+    """Authors' Stata outlier rule (lines 278-308 of Teacher Labor Market Data QWI V13 Color.do):
+
+    Applied successively to (1) leavers, (2) emp_lag, (3) turnover:
+        - Drop if value > multiplier * county_mean(value)
+        - Drop if value falls below a low-bound (catches negatives/zeros):
+            leavers, emp_lag: drop if value <= 1
+            turnover:         drop if value <= 0.001
+
+    Then drop any county whose mean turnover is >= 0.7 entirely.
+
+    The multiplier of 1.33 corresponds to paper Footnote 2's "33% deviation" rule.
+    """
     df = df.copy()
-    county_mean = df.groupby("fips")["leavers"].transform("mean")
-    rel_dev = (df["leavers"] - county_mean).abs() / county_mean
-    flag = (rel_dev >= threshold) | county_mean.isna() | (county_mean == 0)
-    df["turnover_outlier_flag"] = flag.fillna(True)
-    df.loc[flag.fillna(True), "turnover"] = np.nan
+    low_bound = {"leavers": 1.0, "emp_lag": 1.0, "turnover": 0.001}
+    for col in ["leavers", "emp_lag", "turnover"]:
+        if col not in df.columns:
+            continue
+        county_mean = df.groupby("fips")[col].transform("mean")
+        threshold = county_mean * multiplier
+        high_outlier = (df[col] > threshold) & df[col].notna()
+        low_outlier = df[col] <= low_bound[col]
+        df.loc[high_outlier | low_outlier, col] = np.nan
+        # If we just NaN'd leavers or emp_lag, recompute turnover
+        if col == "leavers" or col == "emp_lag":
+            df["turnover"] = df["leavers"] / df["emp_lag"]
+
+    # Drop counties with mean turnover >= 0.7 entirely
+    mean_turnover = df.groupby("fips")["turnover"].transform("mean")
+    df = df[~(mean_turnover >= county_mean_max_turnover)].copy()
+
+    df["turnover_outlier_flag"] = df["turnover"].isna()
     return df
 
 
@@ -226,10 +256,24 @@ def main() -> None:
     valid_n = valid_n[valid_n["emp_lag"] > 0]
     n_p100 = valid_n["nnjf_per_100"].astype(float).values
     w_n = 1.0 / valid_n["emp_lag"].astype(float).values
-    print(f"  NNJF/100 median: {wq(n_p100, w_n, 0.5):.4f}  (paper 1.080)")
-    print(f"  NNJF/100 mean:   {(n_p100*w_n).sum()/w_n.sum():.4f}  (paper 3.32)")
+    print(f"  NNJF/100 median (simple): {wq(n_p100, w_n, 0.5):.4f}  (paper Table A2: 1.080)")
+    print(f"  NNJF/100 mean (simple):   {(n_p100*w_n).sum()/w_n.sum():.4f}  (paper Table A2: 3.32)")
 
-    print(f"  NNJF total for 2019-20 (in thousands): {sy[sy.school_year==2020]['nnjf'].sum()/1000:.1f}  (paper 224.9)")
+    # Unweighted (Figure 2 Panel B annotation says median = 108, P99 = 3,660)
+    print("\nUnweighted NNJF count distribution — compare to Figure 2 Panel B annotation:")
+    n_all = sy.dropna(subset=["nnjf"])["nnjf"].astype(float).values
+    print(f"  NNJF count unweighted median: {np.median(n_all):.1f}  (paper Figure 2: 108)")
+    print(f"  NNJF count unweighted P99:    {np.percentile(n_all, 99):.0f}  (paper Figure 2: 3,660)")
+
+    # Test the authors' alternate window (q1 + q2_lag + q3_lag + q4_lag)
+    if sy["nnjf_authors"].notna().any():
+        print("\nAuthors' literal quarter window (q1 + q2_lag + q3_lag + q4_lag):")
+        n_alt = sy.dropna(subset=["nnjf_authors"])["nnjf_authors"].astype(float).values
+        print(f"  unweighted median: {np.median(n_alt):.1f}  (paper 108)")
+        print(f"  unweighted P99:    {np.percentile(n_alt, 99):.0f}  (paper 3,660)")
+        print(f"  2019-20 total:     {sy[sy.school_year==2020]['nnjf_authors'].sum()/1000:.1f}K  (paper 224.9K)")
+
+    print(f"\n  NNJF total for 2019-20 (school-year window, K): {sy[sy.school_year==2020]['nnjf'].sum()/1000:.1f}  (paper 224.9)")
 
 
 if __name__ == "__main__":

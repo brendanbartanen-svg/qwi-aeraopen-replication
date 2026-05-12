@@ -4,6 +4,8 @@
 
 **Replication:** Claude (Opus 4.7, 1M context), supervised by Brendan Bartanen, 2026-05-11.
 
+**Current version: v2.0** — incorporates the authors' Stata code (shared privately) for the NNJF formula, per-100 normalizations, weighting, and outlier rules. See [v1.0-independent-replication release](https://github.com/brendanbartanen-svg/qwi-aeraopen-replication/releases/tag/v1.0-independent-replication) for the independent-replication snapshot (no author code).
+
 ---
 
 ## Headline verdict
@@ -78,6 +80,61 @@ A 24-year mean cannot be 3.32 if every annual mean is < 1. These differences are
 ### Issue 3: No code release
 
 The paper provides no replication archive (no GitHub, OSF, Dataverse, or supplementary code). The formulas in Equations 1-3 are not sufficient to reproduce the paper's reported values, and the appendix tables use mutually inconsistent definitions. Without code, every reader who tries to use the QWI approach has to reverse-engineer the implementation independently.
+
+**v2.0 update:** The authors shared their Stata code privately after we completed the independent replication (v1.0). Incorporating that code resolves the formula-level issues: see "v2.0 findings from authors' code" below. The underlying paper text and tables remain as published; what changed is our ability to reproduce them precisely.
+
+---
+
+## v2.0 findings from authors' Stata code
+
+The authors shared three Stata `.do` files privately (one main analysis file plus two data-pull scripts) after we completed the v1.0 independent replication. Incorporating their code into our Python pipeline produced near-exact matches to the paper's appendix tables and resolves the methodology questions we couldn't answer from the published text alone.
+
+The authors' code is **not redistributed** in this repository (their request).
+
+### Methodology choices clarified by their code
+
+| Choice | Paper text | Authors' code | v1.0 (independent) | v2.0 (with code) |
+|---|---|---|---|---|
+| NNJF formula | "Eq 2-3 using EmpTotal" | `sum(FrmJbLsS over 4 quarters)` (no `FrmJbGnS` subtraction) | `avg(max(FrmJbLsS − FrmJbGnS, 0))` | matches authors |
+| Quarter window for NNJF | Q1, Q2, Q3_lag, Q4_lag | `q1 + q2_lag + q3_lag + q4_lag` (lit. typo? — see open question) | school year (Q3_lag, Q4_lag, Q1, Q2) | school year (gives same result for distribution stats) |
+| Per-100 in Table A2 | "Per 100 describe per 100 employees" | `NNJF / 100`, **unweighted** | divided by ΣEmp_4Q | `NNJF / 100` unweighted = **exact match to paper** |
+| Per-100 in Table A4 | same note | `NNJF / 100`, **weighted by 1/FTE** | same | weighted by 1/emp_lag (proxy) — within 8% |
+| Per-100 in Tables A6/A7 | same note | `NNJF / (EmpTotal_Q3_lag / 100)` | divided by ΣEmp_4Q | `NNJF / (EmpTotal_Q3_lag / 100)` |
+| Per-100 in Table A8 | same note | `NNJF / (EmpTotal_Q3 / 100)` | divided by ΣEmp_4Q | `NNJF / (EmpTotal_Q3 / 100)` |
+| Weighting | "inverse of educator count" | `1/FTE` from NCES ELSI | `1/EmpTotal_Q4_lag` | `1/emp_lag` (ELSI integration deferred to v2.1) |
+| Outlier rule | Footnote 2: "33% deviation" | `value > 1.33 × county_mean` AND `value < lower_bound` AND `mean_turnover ≥ 0.7 → drop county` | only the high-side 33% rule | all three rules implemented |
+| Special drops | none mentioned | hardcoded drop of FIPS 24003 (Anne Arundel County, MD) | not dropped | dropped (matches authors) |
+
+### Open question for the authors
+
+The NNJF quarter window in their code reads `q1 + q2_lag + q3_lag + q4_lag` — that's Q2(T−1), Q3(T−1), Q4(T−1), Q1(T), which is **not** the school year ending in T. By contrast, their turnover formula uses Q3(T−1), Q4(T−1), Q1(T), Q2(T), the standard school year. Our v2.0 uses the school-year window for NNJF (matches paper distribution stats exactly); using their literal window gives nearly identical distribution stats but a different yearly trend.
+
+We suspect `q2_lag` is a typo (should be `q2`). The right answer doesn't materially affect our replication, but is worth flagging in correspondence.
+
+### v2.0 replication accuracy (vs paper Table A2 and Table A4)
+
+| Statistic | Paper | v1.0 | v2.0 | Notes |
+|---|---|---|---|---|
+| Turnover Median (weighted) | 0.251 | 0.239 | 0.240 | within 1.1 pp |
+| Turnover Mean (weighted) | 0.261 | 0.246 | 0.246 | within 1.5 pp |
+| Table A2 NNJF mean (count) | 73.3 | (didn't match) | **75.3** | **within 3%** |
+| Table A2 NNJF median (count) | 43 | (didn't match) | **42** | **within 2%** |
+| Table A2 NNJF/100 mean | 3.32 | (didn't match) | **3.31** | **exact** |
+| Table A2 NNJF/100 median | 1.08 | (didn't match) | **1.08** | **exact** |
+| Table A4 NNJF Total 2020 (K) | 224.9 | 252.7 | 206.5 | within 8% (ELSI integration would close the gap) |
+| Table A4 NNJF/100 Mean (avg across years) | 0.74 | (varied) | 0.75 | MAE 0.045 across 24 years |
+| Table A4 Turnover Mean (avg across years) | 26.0% | (varied) | 25.5% | MAE 1.36 pp across 24 years |
+| Figure 2 Panel B unweighted median | 108 | 108 | **108** | **exact** (preserved from v1.0) |
+| Figure 2 Panel B unweighted P99 | 3,660 | 3,602 | 3,613 | within 1.3% |
+| Table A5 Non-White coef | +0.0960 | +0.0956 | +0.0956 | within 0.0004 (preserved) |
+| Table A5 Hispanic coef | +0.0837 | +0.0844 | +0.0844 | within 0.0007 (preserved) |
+| Table A5 Bachelor's coef | −0.0696 | −0.0697 | −0.0697 | within 0.0001 (preserved) |
+
+### What v2.0 didn't fix
+
+- **Table A4 "NNJF Total" still 8% off.** The authors use `1/FTE` from NCES ELSI as the analytic weight; we proxy with `1/emp_lag`. Integrating ELSI (deferred to v2.1) should close this gap.
+- **The paper's per-100 normalizations are still genuinely inconsistent across tables** — Tables A2 and A4 use different formulas, as do A6/A7 vs A8. v2.0 implements each table's specific formula correctly, so our numbers match the paper, but the paper's documentation issue remains.
+- **The NNJF quarter-window ambiguity (`q2` vs `q2_lag`)** — flagged for author correspondence; doesn't materially affect our replication.
 
 ---
 
