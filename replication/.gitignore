@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+data/raw/qwi_current/*.parquet
+data/raw/qwi_vintage_2025q1/*.csv.gz
+data/derived/*.parquet

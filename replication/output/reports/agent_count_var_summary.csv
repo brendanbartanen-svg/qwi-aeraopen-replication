@@ -1,0 +1,8 @@
+hypothesis,desc,sy2019,sy2020,sy2021,sy2023,mean_ratio_yrs,median_ratio_yrs,pooled_wmedian_count,pooled_wp25_count,pooled_wp75_count,pooled_wmean_count,pooled_wmedian_rate,pooled_wmean_rate
+H1_sep_avg,Sep (separations) avg over 4 SY quarters,690.1,795.1,564.9,696.2,4.091,3.902,35.5,21.25,65.25,62.85,9.783,13.542
+H2_sepbeg_avg,SepBeg (BoQ separations) avg over 4 SY quarters,486.1,594.0,389.5,495.7,2.782,2.692,26.0,16.0,46.5,45.22,6.513,8.62
+H3_seps_avg,SepS (stable separations) avg over 4 SY quarters,369.3,456.5,282.4,379.3,2.094,2.04,22.0,13.5,38.0,37.55,4.664,41.611
+H4_sep_minus_hira_clip_avg,"max(Sep - HirA, 0) avg over 4 SY quarters",142.4,303.2,107.2,123.6,0.931,0.919,9.75,5.5,18.25,17.94,2.663,5.213
+H5_frmjblss_minus_frmjbgns_clip_avg,"max(FrmJbLsS - FrmJbGnS, 0) avg over 4 SY quarters (net STABLE firm job-loss flow)",174.2,252.7,146.5,161.9,1.025,1.021,9.5,5.25,17.5,17.24,2.778,5.071
+H6_hiraendrepl_avg,HirAEndRepl (replacement hires) avg over 4 SY quarters,303.5,253.2,238.3,330.8,1.622,1.589,13.5,7.75,25.25,24.04,3.42,3.553
+PAPER,Paper-reported targets,176.2,224.9,150.4,162.1,1.0,1.0,43.0,24.0,77.0,73.3,1.08,3.32

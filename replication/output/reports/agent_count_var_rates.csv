@@ -1,0 +1,7 @@
+hypothesis,rate_per100_wmedian,rate_per100_wmean,paper_per100_med,paper_per100_mean
+h1_sep_avg,9.783,13.542,1.08,3.32
+h2_sepbeg_avg,6.513,8.62,1.08,3.32
+h3_seps_avg,4.664,41.611,1.08,3.32
+h4_sep_minus_hira_clip_sum,10.652,20.851,1.08,3.32
+h5_neg_frmjbc_sum,10.897,21.172,1.08,3.32
+h6_hireplc_avg,3.42,3.553,1.08,3.32
