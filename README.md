@@ -15,7 +15,6 @@ Built by Claude (Opus 4.7, 1M context), supervised by Brendan Bartanen.
 | Path | Contents |
 |---|---|
 | [`REPLICATION_REPORT.md`](REPLICATION_REPORT.md) | Main deliverable. Claim-by-claim verdict table, methodology issues, validation findings. |
-| [`REPLICATION_FEASIBILITY.md`](REPLICATION_FEASIBILITY.md) | Pre-replication feasibility assessment. |
 | `replication/code/` | All Python scripts: data pulls, measure construction, figures, appendix tables, sub-agent investigation scripts. |
 | `replication/data/derived/` | Built measures (parquet) — county-school-year panel, validation panel, etc. |
 | `replication/data/raw/state_validation/` | State administrative validation data (small CSVs and PDFs). Excludes PA per-person files (see below). |
