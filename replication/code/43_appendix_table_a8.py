@@ -105,9 +105,14 @@ def main() -> None:
         sy["nnjf_per_100"] = pd.to_numeric(sy["nnjf_per_100"], errors="coerce")
     sy["leavers"] = pd.to_numeric(sy["leavers"], errors="coerce")
 
-    # State-level summaries (across counties × pandemic years 2020-2024)
-    # All weighted statistics use 1/emp_lag as proxy for paper's 1/FTE_ELSI.
-    sy["w"] = 1.0 / sy["emp_lag"].astype(float).replace(0, np.nan)
+    # State-level summaries (across counties × pandemic years 2020-2024).
+    # v2.1: use 1/FTE (NCES CCD teacher counts) as the weight per authors;
+    # fall back to 1/emp_lag for ~2% of county-years without FTE coverage.
+    sy["w"] = np.where(
+        sy.get("fte", pd.Series(np.nan, index=sy.index)).notna() & (sy.get("fte", 0) > 0),
+        1.0 / sy["fte"].astype(float),
+        1.0 / sy["emp_lag"].astype(float).replace(0, np.nan),
+    )
     rows = []
     for st, name in STATE_NAMES.items():
         sub = sy[sy["state"] == st]

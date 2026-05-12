@@ -61,10 +61,15 @@ PAPER_A4 = {
 def main() -> None:
     sy = pd.read_parquet(DATA_DERIVED / "county_school_year_measures.parquet")
     sy = sy[(sy["school_year"] >= 2001) & (sy["school_year"] <= 2024)].copy()
-    # Stata uses 1/fte; we proxy with 1/emp_lag until ELSI is integrated.
+    # v2.1: authors weight = 1/FTE (NCES CCD LEA-staff teacher FTE, county-year).
+    # Use 1/fte where available; fall back to 1/emp_lag for missing FTE (~2%).
     sy = sy.dropna(subset=["emp_lag"])
     sy = sy[sy["emp_lag"] > 0]
-    sy["w"] = 1.0 / sy["emp_lag"].astype(float)
+    sy["w"] = np.where(
+        sy["fte"].notna() & (sy["fte"] > 0),
+        1.0 / sy["fte"].astype(float),
+        1.0 / sy["emp_lag"].astype(float),
+    )
     # NNJF / 100 for the "Per 100" columns (just rescaling per authors' code)
     sy["nnjf_div100"] = sy["nnjf"].astype(float) / 100.0
 

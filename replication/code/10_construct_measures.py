@@ -157,6 +157,28 @@ def construct_school_year_measures(wide: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def merge_fte(sy: pd.DataFrame, fte_path: Path) -> pd.DataFrame:
+    """Merge NCES CCD LEA-staff FTE counts (aggregated to county-year) into the
+    school-year measures panel. Adds a `fte` column. Authors' Stata weight is
+    1/FTE (with FTE from NCES ELSI). For counties/years without FTE coverage,
+    fte is NaN — downstream code falls back to 1/emp_lag.
+    """
+    if not fte_path.exists():
+        print(f"  (no FTE file at {fte_path} — skipping)")
+        sy["fte"] = np.nan
+        return sy
+    fte = pd.read_parquet(fte_path)
+    fte["fips"] = fte["fips"].astype(str).str.zfill(5)
+    fte["school_year"] = fte["school_year"].astype(int)
+    sy["fips"] = sy["fips"].astype(str).str.zfill(5)
+    sy["school_year"] = sy["school_year"].astype(int)
+    sy = sy.merge(fte[["fips","school_year","fte"]], on=["fips","school_year"], how="left")
+    n_matched = sy["fte"].notna().sum()
+    n_total = len(sy)
+    print(f"  FTE merge: {n_matched:,} / {n_total:,} county-years have FTE coverage ({100*n_matched/n_total:.1f}%)")
+    return sy
+
+
 def apply_outlier_rule(df: pd.DataFrame, multiplier: float = 1.33,
                         county_mean_max_turnover: float = 0.7) -> pd.DataFrame:
     """Authors' Stata outlier rule (lines 278-308 of Teacher Labor Market Data QWI V13 Color.do):
@@ -234,6 +256,9 @@ def main() -> None:
     n_valid_nnjf = sy["nnjf"].notna().sum()
     print(f"  valid turnover (post-outlier): {n_valid_turnover:,}")
     print(f"  valid NNJF:                    {n_valid_nnjf:,}")
+
+    # v2.1: merge in NCES CCD FTE for 1/FTE weighting (authors' weight)
+    sy = merge_fte(sy, DATA_DERIVED / "county_year_fte.parquet")
 
     out = DATA_DERIVED / "county_school_year_measures.parquet"
     sy.to_parquet(out, index=False)
