@@ -111,29 +111,59 @@ The NNJF quarter window in their code reads `q1 + q2_lag + q3_lag + q4_lag` — 
 
 We suspect `q2_lag` is a typo (should be `q2`). The right answer doesn't materially affect our replication, but is worth flagging in correspondence.
 
-### v2.0 replication accuracy (vs paper Table A2 and Table A4)
+### v2 replication accuracy (vs paper Table A2, A4, A7, A8)
 
-| Statistic | Paper | v1.0 | v2.0 | Notes |
-|---|---|---|---|---|
-| Turnover Median (weighted) | 0.251 | 0.239 | 0.240 | within 1.1 pp |
-| Turnover Mean (weighted) | 0.261 | 0.246 | 0.246 | within 1.5 pp |
-| Table A2 NNJF mean (count) | 73.3 | (didn't match) | **75.3** | **within 3%** |
-| Table A2 NNJF median (count) | 43 | (didn't match) | **42** | **within 2%** |
-| Table A2 NNJF/100 mean | 3.32 | (didn't match) | **3.31** | **exact** |
-| Table A2 NNJF/100 median | 1.08 | (didn't match) | **1.08** | **exact** |
-| Table A4 NNJF Total 2020 (K) | 224.9 | 252.7 | 206.5 | within 8% (ELSI integration would close the gap) |
-| Table A4 NNJF/100 Mean (avg across years) | 0.74 | (varied) | 0.75 | MAE 0.045 across 24 years |
-| Table A4 Turnover Mean (avg across years) | 26.0% | (varied) | 25.5% | MAE 1.36 pp across 24 years |
-| Figure 2 Panel B unweighted median | 108 | 108 | **108** | **exact** (preserved from v1.0) |
-| Figure 2 Panel B unweighted P99 | 3,660 | 3,602 | 3,613 | within 1.3% |
-| Table A5 Non-White coef | +0.0960 | +0.0956 | +0.0956 | within 0.0004 (preserved) |
-| Table A5 Hispanic coef | +0.0837 | +0.0844 | +0.0844 | within 0.0007 (preserved) |
-| Table A5 Bachelor's coef | −0.0696 | −0.0697 | −0.0697 | within 0.0001 (preserved) |
+**Single-row stats:**
 
-### What v2.0 didn't fix
+| Statistic | Paper | v1.0 | v2.0 | v2.1 (+ FTE) | Notes |
+|---|---|---|---|---|---|
+| Turnover Median (weighted) | 0.251 | 0.239 | 0.240 | 0.240 | within 1.1 pp |
+| Turnover Mean (weighted) | 0.261 | 0.246 | 0.246 | 0.246 | within 1.5 pp |
+| Table A2 NNJF mean (count) | 73.3 | (didn't match) | **75.3** | **75.3** | **within 3%** |
+| Table A2 NNJF median (count) | 43 | (didn't match) | **42** | **42** | **within 2%** |
+| Table A2 NNJF/100 mean | 3.32 | (didn't match) | **3.31** | **3.31** | **exact** |
+| Table A2 NNJF/100 median | 1.08 | (didn't match) | **1.08** | **1.08** | **exact** |
+| Table A4 NNJF Total 2020 (K) | 224.9 | 252.7 | 206.5 | 273.8 | over by 22% (QWI revisions since paper extraction date 2025-03) |
+| Figure 2 Panel B unweighted median | 108 | 108 | **108** | **108** | **exact** (preserved) |
+| Figure 2 Panel B unweighted P99 | 3,660 | 3,602 | 3,613 | 3,613 | within 1.3% |
+| Table A5 Non-White coef | +0.0960 | +0.0956 | +0.0956 | +0.0956 | within 0.0004 (preserved) |
+| Table A5 Hispanic coef | +0.0837 | +0.0844 | +0.0844 | +0.0844 | within 0.0007 (preserved) |
+| Table A5 Bachelor's coef | −0.0696 | −0.0697 | −0.0697 | −0.0697 | within 0.0001 (preserved) |
 
-- **Table A4 "NNJF Total" still 8% off.** The authors use `1/FTE` from NCES ELSI as the analytic weight; we proxy with `1/emp_lag`. Integrating ELSI (deferred to v2.1) should close this gap.
-- **The paper's per-100 normalizations are still genuinely inconsistent across tables** — Tables A2 and A4 use different formulas, as do A6/A7 vs A8. v2.0 implements each table's specific formula correctly, so our numbers match the paper, but the paper's documentation issue remains.
+**Mean absolute error across 24 years (Table A4):**
+
+| Column | v2.0 (1/emp_lag proxy) | v2.1 (1/FTE actual) |
+|---|---|---|
+| Turnover Mean | 1.36 pp | **0.90 pp** |
+| Turnover Median | 0.92 pp | **0.64 pp** |
+| NNJF/100 Mean | 0.045 | 0.044 |
+| NNJF/100 Median | 0.028 | 0.032 |
+| NNJF Total | 11.5K | 11.1K |
+
+**Table A8 (state-level pandemic conditions; 50 states + DC):**
+
+| Match criterion | v1.0 | v2.0 | v2.1 |
+|---|---|---|---|
+| Turnover Mean (within 2 pp) | — | 40/51 | **41/51** |
+| Turnover Median (within 2 pp) | — | 46/51 | 45/51 |
+| Leaver Total (within 25%) | 1/51 | 40/51 | **40/51** |
+| NNJF Total (within 50%) | — | 49/51 | **49/51** |
+
+**Table A7 (demographic NNJF/100) — mean absolute error across 24 years × 6 groups:**
+
+| Group | v1 (Q4_lag denom) | v2 (Q3_lag denom per authors) |
+|---|---|---|
+| White | 0.87 | **0.57** |
+| Non-White | 1.48 | **0.81** |
+| Non-Hispanic | 0.87 | **0.56** |
+| Hispanic | 1.02 | **0.49** |
+| Bachelors | 0.91 | **0.65** |
+| Non-Bachelors | 1.24 | **0.70** |
+
+### What v2 still doesn't fix
+
+- **Table A4 row for 2020 is 22% over paper.** Our raw NNJF count for 2020 = 1.13M; aweight-sum with 1/FTE gives 273.8K vs paper 224.9K. Other years are within 2-5%. This is most plausibly explained by QWI vintage revisions — the paper used QWI as of 2025-03-05; our pull is 2026-05. Census revises QWI quarterly. 2019 and 2021-2024 all match within 5%; 2020 is the outlier year.
+- **The paper's per-100 normalizations are still genuinely inconsistent across tables** — Tables A2 and A4 use different formulas, as do A6/A7 vs A8. v2 implements each table's specific formula correctly, so our numbers match the paper, but the paper's documentation issue remains.
 - **The NNJF quarter-window ambiguity (`q2` vs `q2_lag`)** — flagged for author correspondence; doesn't materially affect our replication.
 
 ---
