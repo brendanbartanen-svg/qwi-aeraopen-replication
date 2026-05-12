@@ -42,3 +42,7 @@ replication/data/raw/qwi_vintage_2025q1/
 
 # Author-shared placeholder (empty in this repo)
 replication/data/raw/author_shared/
+
+# Authors' Stata code (shared privately; must NOT be redistributed)
+author_code/
+*.do
