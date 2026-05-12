@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent))
-from _config import DATA_DERIVED, OUTPUT
+from _config import DATA_DERIVED, OUTPUT, stata_aweight_sum, stata_aweight_mean, stata_aweight_quantile
 
 
 # Paper Table A8 values: state -> (t_mean, t_median, leaver_total, nnjf_mean, nnjf_med, nnjf_total)
@@ -97,22 +97,38 @@ def main() -> None:
     sy = sy[(sy["school_year"] >= 2020) & (sy["school_year"] <= 2024)].copy()
     sy["turnover"] = pd.to_numeric(sy["turnover"], errors="coerce")
     sy["nnjf"] = pd.to_numeric(sy["nnjf"], errors="coerce")
-    sy["nnjf_per_100"] = pd.to_numeric(sy["nnjf_per_100"], errors="coerce")
+    # v2: Table A8 uses NNJF / (Emp_Q3 / 100) per authors' Stata code (line 1394).
+    # The 'nnjf_per_100_q3' column was added in 10_construct_measures.py for this purpose.
+    if "nnjf_per_100_q3" in sy.columns:
+        sy["nnjf_per_100"] = pd.to_numeric(sy["nnjf_per_100_q3"], errors="coerce")
+    else:
+        sy["nnjf_per_100"] = pd.to_numeric(sy["nnjf_per_100"], errors="coerce")
     sy["leavers"] = pd.to_numeric(sy["leavers"], errors="coerce")
 
     # State-level summaries (across counties × pandemic years 2020-2024)
+    # All weighted statistics use 1/emp_lag as proxy for paper's 1/FTE_ELSI.
+    sy["w"] = 1.0 / sy["emp_lag"].astype(float).replace(0, np.nan)
     rows = []
     for st, name in STATE_NAMES.items():
         sub = sy[sy["state"] == st]
         if sub.empty:
             rows.append((st, name, *([np.nan]*6)))
             continue
-        t_mean = sub["turnover"].mean() * 100
-        t_med = sub["turnover"].median() * 100
-        leaver_total = sub["leavers"].sum()
-        nnjf_mean = sub["nnjf_per_100"].mean()
-        nnjf_med = sub["nnjf_per_100"].median()
-        nnjf_total = sub["nnjf"].sum()
+        # Turnover stats: weighted mean and median
+        t_vals = sub["turnover"].values
+        t_w = sub["w"].values
+        t_mean = stata_aweight_mean(t_vals, t_w) * 100
+        t_med = stata_aweight_quantile(t_vals, t_w, 0.5) * 100
+        # Leaver Total: Stata-style aweight sum (authors' Stata line 1384)
+        leaver_total = stata_aweight_sum(sub["leavers"].values, sub["w"].values)
+        # NNJF stats: weighted mean/median of per-100, SIMPLE sum of count
+        # (Authors' Stata line 1398 uses `collapse (sum) job_destruct_sum` WITHOUT aweight,
+        #  even though Leaver Total in the same table uses aweight. Asymmetric within Table A8.)
+        nnjf_p100 = sub["nnjf_per_100"].values
+        nnjf_w = sub["w"].values
+        nnjf_mean = stata_aweight_mean(nnjf_p100, nnjf_w)
+        nnjf_med = stata_aweight_quantile(nnjf_p100, nnjf_w, 0.5)
+        nnjf_total = float(np.nansum(sub["nnjf"].values))
         rows.append((st, name, t_mean, t_med, leaver_total, nnjf_mean, nnjf_med, nnjf_total))
 
     # Build markdown table
