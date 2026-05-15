@@ -334,34 +334,69 @@ State administrative data (Colorado, Pennsylvania, Virginia, Maryland) was recov
 
 ## Replication artifacts
 
+All files below are committed to the public repository at <https://github.com/brendanbartanen-svg/qwi-aeraopen-replication>.
+
 ```
-qwi_aeraopen/
+qwi_aeraopen-replication/
+├── README.md                        ← repo readme: layout, what's in, what's out
 ├── REPLICATION_REPORT.md            ← this file
-├── REPLICATION_FEASIBILITY.md       ← pre-replication feasibility assessment
-├── bleiberg-nguyen-2026-*.pdf       ← original paper
-├── sj-docx-1-ero-*.pdf              ← supplementary appendix
+├── LICENSE                          ← MIT
+├── .gitignore
 └── replication/
-    ├── code/         ← 22 scripts (data pulls, measure construction, figures, appendix tables, sub-agent investigations)
-    ├── data/         ← QWI pulls + state validation data + CCD crosswalks (raw); built measures (derived)
+    ├── .env.example                 ← Census API key placeholder (copy to .env)
+    ├── .gitignore                   ← excludes large/regeneratable data
+    ├── code/                        ← 30 Python scripts
+    │   ├── _config.py               ← paths, API loader, Stata-aweight helpers
+    │   ├── 00_test_api.py
+    │   ├── 01*_pull_qwi_*.py        ← QWI API pulls (county-level)
+    │   ├── 02_pull_qwi_race.py, 03_pull_qwi_education.py
+    │   ├── 04_pull_qwi_race_nnjf.py, 05_pull_qwi_edu_nnjf.py
+    │   ├── 10_construct_measures.py ← main measure construction (v2.1)
+    │   ├── 20-23_figure_*.py        ← Figures 2, 3, 4, 5
+    │   ├── 30_figure_1_validation.py
+    │   ├── 40-45_appendix_table_*.py ← Tables A3, A4, A5, A6, A7, A8
+    │   ├── 90_build_comparison_report.py
+    │   └── 9x_agent_*.py            ← NNJF reverse-engineering sub-agents
+    ├── data/raw/state_validation/   ← 38 files: state administrative source data
+    │   ├── co_*_turnover.xlsx       ← CO Personnel Turnover (3 years)
+    │   ├── md_*.{pdf,csv}           ← MD TWS reports + extracted attrition CSVs
+    │   ├── pa_*_individual_staff.xlsx is GITIGNORED (165 MB; see README)
+    │   ├── pa_all_staff_turnover_computed.xlsx ← derived from PA individual staff
+    │   ├── pa_*_prof_staff.xlsx, pa_classroom_*.xlsx
+    │   └── va_jlarc_*.pdf + va_*_vacancy/turnover.{xlsx,csv}
     └── output/
-        ├── figures/                          ← 5 PNG figures
-        ├── tables/                           ← appendix tables (md + csv)
+        ├── figures/                       ← 5 PNG figures (Figures 1-5 replicated)
+        ├── tables/                        ← appendix tables (md + csv)
+        │   ├── appendix_table_A4_my.md    ← year-by-year vs paper (v2.1)
+        │   ├── appendix_table_A5_replication.md
+        │   ├── appendix_table_A6_my.md, A7, A8
+        │   └── figure_1_validation_summary.csv
         ├── reports/
-        │   ├── comparison_to_paper.md        ← detailed side-by-side comparison
-        │   ├── agent_*.md (6 reports)        ← NNJF investigation: aggregation, count variable,
-        │   │                                    denominator, filters, industry filters, rates
-        │   └── state_data_hunt_*.md (4)      ← CO, MD, PA, VA state-data recovery write-ups
-        └── validation/                       ← multi-agent re-extraction of VA & MD CSVs
-            ├── VALIDATION_SUMMARY.md         ← master verdict + cross-method findings
-            ├── reconcile.py, consistency.py  ← reconciliation + consistency-check scripts
-            ├── consistency_all.md            ← combined consistency report
-            └── <source>/  (×6 sources)
-                ├── extract_A_pdfplumber.csv  ← method A + notes
-                ├── extract_B_vision.csv      ← method B + notes
-                ├── extract_C_textregex.csv   ← method C + notes
-                ├── reconciliation.md         ← A/B/C/CUR cell-level comparison
-                └── semantic_audit.md         ← what does each column actually measure
+        │   ├── comparison_to_paper.md     ← detailed side-by-side comparison
+        │   ├── agent_*.md (6 reports)     ← NNJF reverse-engineering investigation
+        │   ├── state_data_hunt_*.md (6)   ← CO, MD, MD_v2, PA, PA_v2, VA recovery
+        │   └── author_repos_hunt.md       ← search for public replication archive
+        └── validation/                    ← multi-agent re-extraction of VA & MD CSVs
+            ├── VALIDATION_SUMMARY.md      ← master verdict + cross-method findings
+            ├── reconcile.py, consistency.py
+            ├── consistency_all.md
+            └── <source>/  (×6 sources: va_2021-22_turnover, va_2021-22_vacancy,
+                            va_2022-23_vacancy, va_2023-24_vacancy,
+                            md_2020-21_to_2021-22_attrition,
+                            md_2022-23_to_2023-24_attrition)
+                ├── extract_A_pdfplumber.csv + extract_A_notes.md
+                ├── extract_B_vision.csv     + extract_B_notes.md
+                ├── extract_C_textregex.csv  + extract_C_notes.md
+                ├── reconciliation.md       ← A/B/C/CUR cell-level comparison
+                └── semantic_audit.md       ← what does each column actually measure
 ```
+
+Excluded from the repository (gitignored — see README for sources):
+- The original paper and supplementary appendix PDFs (copyright)
+- Raw QWI parquet pulls (~14 MB; re-pullable via `code/01*_pull_qwi_*.py` with a Census API key)
+- NCES CCD bulk data including LEA-staff teacher FTE source files (~190 MB; re-downloadable from `nces.ed.gov/ccd/files.asp`)
+- PA Professional Personnel Individual Staff per-person files (~165 MB; downloadable from PA PDE)
+- Derived parquet measures (`replication/data/derived/`; regenerable from code)
 
 ---
 
