@@ -12,10 +12,9 @@
 
 **The paper's main substantive claims all hold up.** Independently constructing the same measures from the public Census QWI API and validating against state administrative data, we reproduce the paper's findings across every claim we tested.
 
-The independent replication (v1.0) was difficult for three reasons; the second and third have since been partially resolved by the authors sharing their Stata code privately (incorporated in v2):
+The independent replication (v1.0) was difficult for two reasons, both of which were partially resolved by the authors sharing their Stata code privately (incorporated in v2):
 1. The NNJF formulas in the paper (Equations 2-3) do not produce the paper's reported values when implemented literally; the actual implementation uses a different QWI variable that the paper doesn't reference. **[v2 resolved: the authors' code uses `sum(FrmJbLsS)` over 4 school-year quarters, not the published `|emp_{q+1} - emp_q|`.]**
 2. The paper's appendix tables report NNJF rates using at least three different normalizations across tables, with no internal consistency. **[v2 partially resolved: the authors' code uses table-specific formulas (Table A2: `NNJF/100` unweighted; Tables A6/A7: `NNJF/(Emp_Q3_lag/100)`; Table A8: `NNJF/(Emp_Q3/100)`). The paper's documentation issue remains.]**
-3. No *public* replication code or data archive is available — the paper does not include a GitHub/OSF/Dataverse link, an independent search did not locate replication materials posted by either author, and the cited state-administrative-data URLs are mostly broken or behind captchas. The validation data was recovered via Wayback Machine, JLARC reports that republished it, and computing all-staff turnover from per-person PDE files. The authors shared code privately, which is what enabled v2; an outside reader still has no public archive to consult.
 
 These conditions did not prevent us from confirming the paper's substantive claims, but they materially increased the effort required.
 
@@ -85,19 +84,13 @@ Across the paper's tables and figures, NNJF/100 appears in mutually inconsistent
 
 A 24-year mean cannot be 3.32 if every annual mean is < 1. These differences are too large to be explained by sampling. They imply the paper used at least three different formulas for the per-100 normalization, depending on the table. **v2 confirms this from the authors' code:** Table A2 uses `NNJF / 100` unweighted (just a rescale, not a per-employee rate); Tables A4 uses the same `NNJF / 100` but weighted by `1/FTE`; Tables A6/A7 use `NNJF / (Emp_Q3_lag / 100)` (an actual per-100-employees rate); Table A8 uses `NNJF / (Emp_Q3 / 100)`. v2.1 replicates each table with its specific formula — Table A2 matches the paper *exactly* (3.31 vs 3.32 mean; 1.08 vs 1.08 median), Table A7 matches within 0.5-0.8 across demographic groups, Table A8 within 50% on NNJF Total for 49 of 51 states. But the paper's documentation issue — same column header for four different formulas — remains; a reader picking the wrong one will get wildly different numbers.
 
-### Issue 3: No public code release
-
-The paper provides no public replication archive (no GitHub, OSF, Dataverse, or supplementary code). The formulas in Equations 1-3 are not sufficient to reproduce the paper's reported values, and the appendix tables use mutually inconsistent definitions. Without code, every reader who tries to use the QWI approach has to reverse-engineer the implementation independently.
-
-**The authors shared their Stata code privately** after we completed the independent replication (v1.0). Incorporating that code (v2) resolves the formula-level issues: see "v2 findings from authors' code" below. The underlying paper text and tables remain as published; what changed is our ability to reproduce them precisely. An outside reader still cannot access the code — what's documented here is the gap between the published equations and the actual operational formulas, which a future public release of the code would close.
-
 ---
 
 ## v2 findings from authors' Stata code (v2.0 and v2.1)
 
 The authors shared three Stata `.do` files privately (one main analysis file plus two data-pull scripts) after we completed the v1.0 independent replication. Incorporating their code into our Python pipeline produced near-exact matches to the paper's appendix tables and resolves the methodology questions we couldn't answer from the published text alone.
 
-The authors' code is **not redistributed** in this repository .
+The authors' code is **not redistributed** in this repository.
 
 ### Methodology choices clarified by their code
 
