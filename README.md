@@ -4,7 +4,14 @@ Independent replication of:
 
 > Bleiberg, J. & Nguyen, T. D. (2026). Leveraging Quarterly Workforce Indicators to Analyze K–12 Education Labor Market Dynamics: Inequitable Trends in Turnover. *AERA Open*, 12(1), 1–18. [DOI: 10.1177/23328584261443298](https://doi.org/10.1177/23328584261443298)
 
-**Headline:** All 12 substantive claims tested replicate (11 quantitatively, 1 not tested per the original scope). Full report: [`REPLICATION_REPORT.md`](REPLICATION_REPORT.md).
+**Headline:** Of 12 substantive claims tested, 10 are confirmed quantitatively, 1 is **mixed** (Claim 6: pandemic-year direction holds, but the specific "~225,000 jobs lost" magnitude is contingent on a gross-loss formula not described in the paper), and 1 was not independently tested. No claim is contradicted. Full report: [`REPLICATION_REPORT.md`](REPLICATION_REPORT.md).
+
+A bit-for-bit replication of the paper's reported numbers is structurally impossible because Census revises QWI quarterly and does not preserve historical vintages — see the "perfect replication" note in the main report.
+
+**Releases:**
+- [`v1.0-independent-replication`](https://github.com/brendanbartanen-svg/qwi-aeraopen-replication/releases/tag/v1.0-independent-replication) — independent replication using only public data and the paper's text
+- [`v2.0-with-author-code`](https://github.com/brendanbartanen-svg/qwi-aeraopen-replication/releases/tag/v2.0-with-author-code) — intermediate snapshot after the authors shared their Stata code privately
+- **Current `main` (v2.1)** — adds NCES CCD teacher FTE for the `1/FTE` weighting in the authors' code
 
 Built by Claude (Opus 4.7, 1M context), supervised by Brendan Bartanen.
 
@@ -14,33 +21,32 @@ Built by Claude (Opus 4.7, 1M context), supervised by Brendan Bartanen.
 
 | Path | Contents |
 |---|---|
-| [`REPLICATION_REPORT.md`](REPLICATION_REPORT.md) | Main deliverable. Claim-by-claim verdict table, methodology issues, validation findings. |
-| `replication/code/` | All Python scripts: data pulls, measure construction, figures, appendix tables, sub-agent investigation scripts. |
-| `replication/data/derived/` | Built measures (parquet) — county-school-year panel, validation panel, etc. |
-| `replication/data/raw/state_validation/` | State administrative validation data (small CSVs and PDFs). Excludes PA per-person files (see below). |
-| `replication/output/figures/` | Replicated paper figures. |
+| [`REPLICATION_REPORT.md`](REPLICATION_REPORT.md) | Main deliverable. Claim-by-claim verdict, methodology issues, multi-agent validation findings. |
+| `replication/code/` | 30 Python scripts: data pulls (`01*-05*`), measure construction (`10`), figures (`20-23`, `30`), appendix tables (`40-45`), paper-comparison report (`90`), and NNJF reverse-engineering sub-agent investigations (`91-96`). |
+| `replication/data/raw/state_validation/` | 38 state administrative source files (CO/MD/PA/VA — small CSVs, xlsx, PDFs). The 5 large PA `*_individual_staff.xlsx` per-person files are gitignored (see below). |
+| `replication/output/figures/` | 5 replicated paper figures (PNG). |
 | `replication/output/tables/` | Replicated appendix tables (markdown + CSV). |
-| `replication/output/reports/` | Sub-agent investigation reports (NNJF formula reverse-engineering, state-data-recovery write-ups, paper-comparison report). |
-| `replication/output/validation/` | Multi-agent validation of the state administrative extractions: per-method extraction CSVs, cell-level reconciliation, semantic audits. |
+| `replication/output/reports/` | Sub-agent investigation reports (NNJF reverse-engineering 6 reports; state-data-recovery write-ups for CO/MD/PA/VA, 6 reports; paper-comparison report; author-archive-hunt report). |
+| `replication/output/validation/` | Multi-agent validation of state administrative extractions: per-method extraction CSVs, cell-level reconciliation, semantic audits across 6 source files. |
 
 ## What's NOT in this repo (and where to get it)
 
-The `.gitignore` excludes these. They're either large, re-downloadable, copyright-restricted, or contain personnel data.
+`.gitignore` excludes these. They're either large, re-downloadable, copyright-restricted, or contain per-person data.
 
 | Excluded | Where to get | Why excluded |
 |---|---|---|
 | `bleiberg-nguyen-2026-*.pdf` and `sj-docx-1-ero-*.pdf` | [DOI link](https://doi.org/10.1177/23328584261443298) | Copyright |
-| `replication/data/raw/qwi_current/` (QWI parquet pulls, ~14 MB) | Re-pull via the code: `python3 replication/code/01b_pull_qwi_county_emp.py` etc. (needs Census API key) | Re-downloadable |
-| `replication/data/raw/qwi_vintage_2025q1/` (paper's data vintage) | Census QWI archives; no longer available from current API | Vintage not preserved by Census after revisions |
-| `replication/data/raw/ccd/` (NCES Common Core of Data, ~72 MB) | [NCES CCD](https://nces.ed.gov/ccd/files.asp) — files for LEA universe and EDGE LEA-county crosswalks | Large + re-downloadable |
-| `replication/data/raw/state_validation/pa_*_individual_staff.xlsx` (PA Professional Personnel Individual Staff files, ~165 MB) | [PA PDE](https://www.education.pa.gov/DataAndReporting/ProfPerSummary/Pages/default.aspx) → Professional Personnel Individual Staff Reports | Large + per-person records |
+| `replication/data/raw/qwi_current/` (QWI parquet pulls, ~14 MB) | Re-pull via `python3 replication/code/01b_pull_qwi_county_emp.py` etc. (needs Census API key) | Re-downloadable |
+| `replication/data/raw/qwi_vintage_2025q1/` (paper's data vintage) | No longer available from Census API | Vintage not preserved publicly |
+| `replication/data/raw/ccd/` (NCES Common Core of Data + LEA-staff FTE source files, ~190 MB) | [NCES CCD bulk files](https://nces.ed.gov/ccd/files.asp) — `ccd_lea_059_*` series for FTE; EDGE LEA-county crosswalks | Large + re-downloadable |
+| `replication/data/derived/*.parquet` (built measures, ~3 MB) | Regenerate via `python3 replication/code/10_construct_measures.py` | Re-buildable from code |
+| `replication/data/raw/state_validation/pa_*_individual_staff.xlsx` (PA Professional Personnel Individual Staff files, ~165 MB total across 5 years) | [PA PDE](https://www.education.pa.gov/DataAndReporting/ProfPerSummary/Pages/default.aspx) → Professional Personnel Individual Staff Reports | Large + per-person records |
 | `.env` | Make your own: `cp replication/.env.example replication/.env` and add a [Census API key](https://api.census.gov/data/key_signup.html) | Secrets |
 
 ## Quickstart: reproduce the analysis
 
 ```bash
-# 1. Get a Census API key (free, instant)
-#    https://api.census.gov/data/key_signup.html
+# 1. Get a Census API key (free, instant): https://api.census.gov/data/key_signup.html
 cp replication/.env.example replication/.env
 # Edit replication/.env and set CENSUS_API_KEY=<your key>
 
@@ -54,46 +60,54 @@ python3 code/03_pull_qwi_education.py
 python3 code/04_pull_qwi_race_nnjf.py
 python3 code/05_pull_qwi_edu_nnjf.py
 
-# 3. Build measures (county-school-year panel, turnover, NNJF)
+# 3. (Optional) Pull NCES CCD LEA-staff FTE for the 1/FTE weighting per authors' code.
+#    Without this, the pipeline falls back to 1/EmpTotal (covers ~98% of county-years
+#    either way; FTE just tightens the match to paper Table A4 by ~0.5 pp on average).
+#    See `replication/data/raw/ccd/` README in the code for the source URLs.
+
+# 4. Build measures (county-school-year panel: turnover, NNJF, weights, outliers)
 python3 code/10_construct_measures.py
 
-# 4. Figures
+# 5. Figures
 python3 code/20_figure_2_distribution.py
 python3 code/21_figure_3_time_trends.py
 python3 code/22_figure_4_race_ethnicity.py
 python3 code/23_figure_5_education.py
 python3 code/30_figure_1_validation.py
 
-# 5. Appendix tables
+# 6. Appendix tables
 python3 code/40_appendix_table_a3.py
 python3 code/41_appendix_table_a5.py
 python3 code/42_appendix_tables_a6_a7.py
 python3 code/43_appendix_table_a8.py
 python3 code/44_appendix_table_a7.py
+python3 code/45_appendix_table_a4.py
 
-# 6. Paper-comparison report
+# 7. Paper-comparison report
 python3 code/90_build_comparison_report.py
 ```
 
-State administrative validation data (CO, PA, VA, MD) was recovered manually; recovery write-ups are in `replication/output/reports/state_data_hunt_*.md`. The PA per-person personnel files have to be downloaded separately from PDE if you want to re-compute the PA all-staff turnover (`code/15_compute_pa_all_staff_turnover.py`).
+State administrative validation data (CO, PA, VA, MD) was recovered manually; recovery write-ups are in `replication/output/reports/state_data_hunt_*.md`.
 
 ## Reusing this work
 
-If you want to extend the QWI K-12 approach the paper introduces, the most useful artifacts here are probably:
+If you want to extend the QWI K-12 approach the paper introduces, the most useful artifacts here are:
 
-- **`replication/code/10_construct_measures.py`** — the working NNJF formula (`avg over 4 school-year quarters of max(FrmJbLsS - FrmJbGnS, 0)`) reverse-engineered from the paper's reported values. The paper's stated Equations 2-3 do not produce its reported numbers; see [`REPLICATION_REPORT.md`](REPLICATION_REPORT.md) §"Implementation issues" for the full story.
-- **`replication/output/reports/agent_*.md`** — the 6 parallel sub-agent investigations that tested 60+ alternative NNJF specifications.
+- **`replication/code/10_construct_measures.py`** — the working NNJF measure construction. The current implementation (v2.1) uses `sum(FrmJbLsS)` over the four school-year quarters per the authors' code. The script also computes an alternative window and the truly-net variant (`sum(FrmJbLsS − FrmJbGnS)`) so you can switch.
+- **`replication/code/_config.py`** — helpers including Stata-style aweight sum/mean/quantile that reproduce `collapse (sum) [aw=w]` exactly. Useful for any QWI work where you want to match a Stata pipeline from Python.
+- **`replication/output/reports/agent_*.md`** — the 6 parallel sub-agent investigations that tested 60+ alternative NNJF specifications during v1.0 (before the authors' code was available). Documents what each variant produces.
 - **`replication/output/validation/`** — the multi-agent validation framework for state-administrative-data extraction. Applies to any PDF-source dataset, not just this paper.
 
 ## Key methodology footnotes
 
 A few non-obvious details surfaced by replication and semantic auditing:
 
-1. **NNJF formula.** Paper Eq 2-3 are insufficient to reproduce the paper's reported values. The actual formula uses QWI variables `FrmJbLsS` and `FrmJbGnS` (firm-level stable job losses/gains), which the paper doesn't reference.
-2. **Per-100 NNJF normalization is not consistent across tables.** Tables A2, A4, A7, A8, and Figure 2 use at least three different normalizations.
-3. **JLARC VA vacancy snapshots changed between years.** SY 2022-23 unfilled FTE = "reported vacant as of October 1, 2022". SY 2023-24 unfilled FTE = "actual or assumed to be vacant on the first day of school". Year-over-year comparisons inherit this definitional change.
-4. **JLARC pre-pandemic average is 5 years**, not 3: averages SY 2015-16 through SY 2019-20.
-5. **MD chart title vs. data direction.** TWS-2024 page 11 is titled "SY 2023-2024" but the data measures the 2022-23 → 2023-24 transition (the title is the year of non-return, not the cohort year).
+1. **NNJF formula.** Paper Equations 2-3 (`|emp_{q+1} − emp_q|` using `EmpTotal`) are insufficient — implementing them literally gives values 5-8× the paper's reported totals. The actual operational formula sums QWI's `FrmJbLsS` (firm-level stable job losses) across the four school-year quarters. The paper doesn't reference this variable in its equations.
+2. **"Net-Negative" is misleading.** Despite the construct's name, the operational formula does NOT subtract `FrmJbGnS` (firm-level stable job gains). The reported magnitude is gross loss at contracting districts. A truly *net* formula yields roughly half the magnitude.
+3. **Per-100 NNJF normalization is not consistent across appendix tables.** Tables A2, A4, A6/A7, and A8 each use a different denominator/formula despite sharing the column header "NNJF Per 100". See REPLICATION_REPORT.md for the per-table specifics.
+4. **JLARC VA vacancy snapshots changed between years.** SY 2022-23 unfilled FTE = "reported vacant as of October 1, 2022". SY 2023-24 unfilled FTE = "actual or assumed to be vacant on the first day of school". Year-over-year comparisons inherit this definitional change.
+5. **JLARC pre-pandemic average is 5 years**, not 3: averages SY 2015-16 through SY 2019-20.
+6. **MD TWS-2024 chart title vs. data direction.** Page 11 is titled "SY 2023-2024" but the data measures the 2022-23 → 2023-24 transition (the title is the year of non-return, not the cohort year).
 
 ## License
 
