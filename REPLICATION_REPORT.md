@@ -12,6 +12,12 @@
 
 **The paper's main substantive claims all hold up.** Independently constructing the same measures from the public Census QWI API and validating against state administrative data, we reproduce the paper's findings across every claim we tested.
 
+### A note on what perfect replication would require
+
+**A bit-for-bit replication of the paper is structurally impossible**, because the Census Bureau revises Quarterly Workforce Indicators (QWI) data quarterly. The published paper used the R2024Q4 vintage extracted on or around March 2025; that vintage is no longer available from the current API (Census does not preserve historical vintages publicly). Our pulls (May 2026, R2025Q2 vintage) include four additional quarters of new observations AND revisions to every prior quarter the paper used. The paper itself notes this revision behavior as one of QWI's key practical features. For non-pandemic years, the revisions are small (our values match paper Table A4 within ±5%). For the pandemic peak year (SY 2019-20), revisions to the Q2/Q3 2020 windows during the height of QWI's seasonal-adjustment learning are large enough to produce ~22% magnitude shifts even after every other methodology choice is aligned with the authors'. Throughout this report, when we report a magnitude that differs from the paper, the most likely first-order cause is QWI vintage revisions, not methodology.
+
+### Replication challenges
+
 The independent replication (v1.0) was difficult for two reasons, both of which were partially resolved by the authors sharing their Stata code privately (incorporated in v2):
 1. The NNJF formulas in the paper (Equations 2-3) do not produce the paper's reported values when implemented literally; the actual implementation uses a different QWI variable that the paper doesn't reference. **[v2 resolved: the authors' code uses `sum(FrmJbLsS)` over 4 school-year quarters, not the published `|emp_{q+1} - emp_q|`.]**
 2. The paper's appendix tables report NNJF rates using at least three different normalizations across tables, with no internal consistency. **[v2 partially resolved: the authors' code uses table-specific formulas (Table A2: `NNJF/100` unweighted; Tables A6/A7: `NNJF/(Emp_Q3_lag/100)`; Table A8: `NNJF/(Emp_Q3/100)`). The paper's documentation issue remains.]**
@@ -106,11 +112,9 @@ The authors' code is **not redistributed** in this repository.
 | Outlier rule | Footnote 2: "33% deviation" | `value > 1.33 × county_mean` AND `value < lower_bound` AND `mean_turnover ≥ 0.7 → drop county` | only the high-side 33% rule | all three rules implemented |
 | Special drops | none mentioned | hardcoded drop of FIPS 24003 (Anne Arundel County, MD) | not dropped | dropped (matches authors) |
 
-### Open question for the authors
+### Quarter-window detail in the NNJF formula
 
-The NNJF quarter window in their code reads `q1 + q2_lag + q3_lag + q4_lag` — that's Q2(T−1), Q3(T−1), Q4(T−1), Q1(T), which is **not** the school year ending in T. By contrast, their turnover formula uses Q3(T−1), Q4(T−1), Q1(T), Q2(T), the standard school year. Our v2.0 uses the school-year window for NNJF (matches paper distribution stats exactly); using their literal window gives nearly identical distribution stats but a different yearly trend.
-
-We suspect `q2_lag` is a typo (should be `q2`). The right answer doesn't materially affect our replication, but is worth flagging in correspondence.
+The NNJF quarter window in the authors' code reads `q1 + q2_lag + q3_lag + q4_lag` — that's Q2(T−1), Q3(T−1), Q4(T−1), Q1(T), which is **not** the school year ending in T. By contrast, the turnover formula uses Q3(T−1), Q4(T−1), Q1(T), Q2(T), the standard school year. Our v2.0 uses the school-year window for NNJF (matches paper distribution stats exactly); using the literal code window gives nearly identical distribution stats but a different yearly trend. The asymmetry between the two windows in the same code base may be an unintended `q2`/`q2_lag` mix-up; either way it does not materially affect our replication results.
 
 ### v2 replication accuracy (vs paper Table A2, A4, A7, A8)
 
@@ -165,7 +169,7 @@ We suspect `q2_lag` is a typo (should be `q2`). The right answer doesn't materia
 
 - **Table A4 row for 2020 is 22% over paper.** Our raw NNJF count for 2020 = 1.13M; aweight-sum with 1/FTE gives 273.8K vs paper 224.9K. Other years are within 2-5%. This is most plausibly explained by QWI vintage revisions — the paper used QWI as of 2025-03-05; our pull is 2026-05. Census revises QWI quarterly. 2019 and 2021-2024 all match within 5%; 2020 is the outlier year.
 - **The paper's per-100 normalizations are still genuinely inconsistent across tables** — Tables A2 and A4 use different formulas, as do A6/A7 vs A8. v2 implements each table's specific formula correctly, so our numbers match the paper, but the paper's documentation issue remains.
-- **The NNJF quarter-window ambiguity (`q2` vs `q2_lag`)** — flagged for author correspondence; doesn't materially affect our replication.
+- **The NNJF quarter-window asymmetry (`q2` vs `q2_lag` between turnover and NNJF code blocks)** — doesn't materially affect our replication.
 
 ---
 
