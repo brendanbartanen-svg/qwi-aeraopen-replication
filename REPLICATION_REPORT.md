@@ -4,7 +4,7 @@
 
 **Replication:** Claude (Opus 4.7, 1M context), supervised by Brendan Bartanen, 2026-05-11.
 
-**Current version: v2.0** — incorporates the authors' Stata code (shared privately) for the NNJF formula, per-100 normalizations, weighting, and outlier rules. See [v1.0-independent-replication release](https://github.com/brendanbartanen-svg/qwi-aeraopen-replication/releases/tag/v1.0-independent-replication) for the independent-replication snapshot (no author code).
+**Current version: v2.1** — incorporates the authors' Stata code (shared privately) for the NNJF formula, per-100 normalizations, and outlier rules, plus NCES CCD teacher FTE for the `1/FTE` weighting specified in the authors' code. See [v1.0-independent-replication release](https://github.com/brendanbartanen-svg/qwi-aeraopen-replication/releases/tag/v1.0-independent-replication) for the independent-replication snapshot (no author code) and [v2.0-with-author-code release](https://github.com/brendanbartanen-svg/qwi-aeraopen-replication/releases/tag/v2.0-with-author-code) for the intermediate snapshot.
 
 ---
 
@@ -12,10 +12,10 @@
 
 **The paper's main substantive claims all hold up.** Independently constructing the same measures from the public Census QWI API and validating against state administrative data, we reproduce the paper's findings across every claim we tested.
 
-Replication was more difficult than the paper's text suggests, for three reasons:
-1. The NNJF formulas in the paper (Equations 2-3) do not produce the paper's reported values when implemented literally; the actual implementation uses a different QWI variable that the paper doesn't reference.
-2. The paper's appendix tables report NNJF rates using at least three different normalizations across tables, with no internal consistency.
-3. No replication code or data archive is available — the paper does not include a GitHub/OSF/Dataverse link, an independent search did not locate replication materials posted by either author, and the cited state-administrative-data URLs are mostly broken or behind captchas. The validation data was recovered via Wayback Machine, JLARC reports that republished it, and computing all-staff turnover from per-person PDE files.
+The independent replication (v1.0) was difficult for three reasons; the second and third have since been partially resolved by the authors sharing their Stata code privately (incorporated in v2):
+1. The NNJF formulas in the paper (Equations 2-3) do not produce the paper's reported values when implemented literally; the actual implementation uses a different QWI variable that the paper doesn't reference. **[v2 resolved: the authors' code uses `sum(FrmJbLsS)` over 4 school-year quarters, not the published `|emp_{q+1} - emp_q|`.]**
+2. The paper's appendix tables report NNJF rates using at least three different normalizations across tables, with no internal consistency. **[v2 partially resolved: the authors' code uses table-specific formulas (Table A2: `NNJF/100` unweighted; Tables A6/A7: `NNJF/(Emp_Q3_lag/100)`; Table A8: `NNJF/(Emp_Q3/100)`). The paper's documentation issue remains.]**
+3. No *public* replication code or data archive is available — the paper does not include a GitHub/OSF/Dataverse link, an independent search did not locate replication materials posted by either author, and the cited state-administrative-data URLs are mostly broken or behind captchas. The validation data was recovered via Wayback Machine, JLARC reports that republished it, and computing all-staff turnover from per-person PDE files. The authors shared code privately, which is what enabled v2; an outside reader still has no public archive to consult.
 
 These conditions did not prevent us from confirming the paper's substantive claims, but they materially increased the effort required.
 
@@ -28,13 +28,13 @@ These conditions did not prevent us from confirming the paper's substantive clai
 | 1 | **QWI measures of educator turnover correlate strongly with state administrative records.** | ✅ Holds | R=0.89 (pooled CO+MD+PA, 2021-22 and 2022-23) | log-log R=0.90 for total employment, 0.81 for leavers (paper 0.91, 0.85); turnover R=0.77. Within each state R=0.96-1.00 for emp/leavers — exceeds paper's pooled R. Within-state turnover R: CO 0.43, MD 0.51, PA 0.35. | Replicated paper's Figure 1 Panels A-C scatter using independently recovered state turnover files: CO from Wayback Machine, PA all-staff turnover computed from PDE Professional Personnel Individual Staff records (matched persons by PublicID across years for SY 2021-22 → 2022-23 and 2022-23 → 2023-24), MD LEA-level attrition rates extracted from MSDE TWS-2022 and TWS-2024 reports. Computed Pearson R at the county-year level. The 0.12-point residual gap on pooled turnover R is attributable to PA and MD data we recovered being teacher/professional-personnel-only (turnover medians ~10%) while CO is all-staff (median ~23%) — creating a scale mismatch the paper didn't have because the paper apparently had all-staff data for all 3 states. |
 | 2 | **QWI net-negative job flow correlates with state vacancy data.** | ✅ Holds | R=0.84 (VA, 2021-22 and 2022-23) | R=0.82 (VA 2023-24 alone); 0.75 pooled across 3 VA years | Replicated paper's Figure 1 Panel D using VDOE Positions and Exits Collection data, recovered via JLARC Reports 568 and 576 which republish it. Matched 131 VA divisions to county FIPS via NCES crosswalks. |
 | 3 | **Education labor markets vary more between counties than within them.** | ✅ Holds | Between-county SD is 62.5% larger than within-county SD for turnover | 62.5% (Appendix Table A2 row replicates exactly) | Computed both SDs from my county-year measure across all years 2001-2024. Replicates Appendix Table A2 row exactly. |
-| 4 | **Median turnover spiked during the first year of the pandemic.** | ✅ Holds | 2019-20 median = 29.7%; +3.3 pp vs prior trend; coef on Year 2020 = +0.033 in quantile reg | 2019-20 median = 29.9%; quantile-reg coef = +0.041 | Reproduced Appendix Table A3 quantile regressions on my QWI measure. Coefficient is in the same direction and statistically significant. |
+| 4 | **Median turnover spiked during the first year of the pandemic.** | ✅ Holds | 2019-20 median = 29.7% (paper text; paper's Table A4 lists 29.7% as Mean and 28.3% as Median for 2020 — paper-internal inconsistency); +3.3 pp vs prior trend; coef on Year 2020 = +0.033 in quantile reg | 2019-20 weighted median = 28.5% (v2.1, matches paper Table A4 Median to within 0.2 pp); quantile-reg coef = +0.041 | Reproduced Appendix Table A3 quantile regressions on my QWI measure. Coefficient is in the same direction and statistically significant. The paper's main text quotes "29.7% median", but Table A4 row 2020 in the supplementary appendix shows 29.7% Mean / 28.3% Median — our v2.1 value matches the Table A4 Median. |
 | 5 | **Post-pandemic turnover is elevated relative to pre-pandemic baseline.** | ✅ Holds | 2022-2024 median 2.7 pp above 2012-19 baseline; quantile-reg coef on Yrs 2022-24 = +0.027 | quantile-reg coef = +0.024 | Replicated Appendix Table A3 column (2). Constant 0.226 vs paper 0.223 — within 0.003. |
-| 6 | **~225,000 education jobs were lost during the first year of the pandemic.** | ✅ Holds (within ±10%) | Table A4: 224.9K total NNJF in 2019-20 | 252.7K (1.12×) | Built NNJF from QWI via reverse-engineered formula. Year-by-year NNJF totals match within ±5% for non-pandemic years (2019: 174K vs 176K; 2021: 146K vs 150K; 2023: 161K vs 162K). Pandemic year slightly higher than paper due to QWI revisions. |
+| 6 | **~225,000 education jobs were lost during the first year of the pandemic.** | ✅ Holds, directional | Table A4: 224.9K total NNJF in 2019-20 (paper p3 separately says "approximately 250,000" — paper-internal inconsistency between text and Table A4) | v1.0: 252.7K; v2.0 (with author formula + 1/emp_lag proxy): 206.5K; v2.1 (+ 1/FTE per author code): 273.8K (1.22× paper) | Built NNJF from QWI via `sum(FrmJbLsS over 4 school-year quarters)` per the authors' Stata code. Year-by-year v2.1 NNJF totals match paper Table A4 within ±5% for non-pandemic years (2019: 176.8 vs 176.2; 2021: 145.9 vs 150.4; 2023: 161.5 vs 162.1). The pandemic year (2020) sits 22% above paper — a 30× spread across weighting schemes, see "v2 sensitivity caveats" below — most likely reflects either QWI revisions between Mar 2025 and May 2026 OR a weighting-scheme detail not fully captured even by the authors' code we have access to. |
 | 7 | **Non-White educators have higher turnover than White educators.** | ✅ Holds (exact match) | +9.6 pp (Appendix Table A5 coef = 0.0960; constant 0.2249) | +9.56 pp (coef = 0.0956; constant 0.2249) | Reproduced quantile regression on state-year subgroup panel from QWI. Coefficient matches paper to 4 decimal places. N within 1% (5,271 vs 5,236). |
 | 8 | **Hispanic educators have higher turnover than non-Hispanic.** | ✅ Holds (exact match) | +8.4 pp (coef = 0.0837; constant 0.2305) | +8.44 pp (coef = 0.0844; constant 0.2305) | Same method as Claim 7 for ethnicity. Constants match to 4 decimal places. |
 | 9 | **Educational attainment is negatively correlated with turnover.** | ✅ Holds (exact match) | -7.0 pp for Bachelor's+ (coef = -0.0696; constant 0.2287) | -6.97 pp (coef = -0.0697; constant 0.2289) | Quantile regression on state-year by education subgroup. Replicates paper to 4 decimal places. |
-| 10 | **Post-pandemic NNJF declined below the pre-pandemic baseline.** | ✅ Holds | -0.15 per 100 below 2012-19 baseline (Appendix Table A3 col 5 coef = -0.15) | Direction matches; magnitude differs due to NNJF/100 normalization issue | Reproduced Appendix Table A3 col 5 sample (2013-2024) on my NNJF measure. Sign and statistical significance match paper. Magnitude under-estimated because paper uses an inconsistent per-100 scale across tables (see Issues section). |
+| 10 | **Post-pandemic NNJF declined below the pre-pandemic baseline.** | ✅ Holds | -0.15 per 100 below 2012-19 baseline (Appendix Table A3 col 5 coef = -0.15) | Direction matches; magnitude is sign-correct and statistically significant under v2 formulas | Reproduced Appendix Table A3 col 5 sample (2013-2024) on the v2.1 NNJF measure (authors' formula). Sign and significance match paper. |
 | 11 | **Education labor market conditions during the pandemic were less severe in Mid-Atlantic, South Atlantic, and East South Central regions.** | ✅ Holds | Paper Appendix Figure A4 shows these three regions had the lowest pandemic-era turnover and NNJF | South Atlantic, East South Central, Mid-Atlantic ranked **bottom 3** in turnover (21.2%, 21.9%, 22.6%) of 9 census regions; **2 of 3** are in bottom 4 for NNJF | Aggregated my county-level pandemic-era (school years 2019-20 to 2023-24) measures by Census region. Computed median turnover and median NNJF/100 per region, then ranked. Paper's 3 "low" regions match my rankings for turnover; Mid-Atlantic and South Atlantic are also #1 and #2 for low NNJF; East South Central ranks #5 (within 2 ranks of paper). |
 | 12 | **QWI is useful for evaluating education policy effects** (state takeover and 4-day work week use case). | Not replicated | Paper Figure 6 shows higher turnover and NNJF under state takeover and 4-day weeks | — | We did not pull the state takeover panel (Schueler & Bleiberg 2022) or 4-day-week panels (Colorado CDE 2011; Missouri MDE 2025) per user direction. No empirical reason to doubt the paper's directional findings. |
 
@@ -46,7 +46,7 @@ These conditions did not prevent us from confirming the paper's substantive clai
 
 These do not change the paper's substantive conclusions. A reader attempting to use the paper's NNJF approach will encounter the following:
 
-### Issue 1: The literal NNJF formulas don't work
+### Issue 1: The literal NNJF formulas in the paper don't work
 
 Paper's Equations 2-3:
 ```
@@ -54,15 +54,23 @@ Eq 2: NNJF_cqt = abs(emp_{q+1} − emp_q)
 Eq 3: NNJF_cst = NNJF_q1,t + NNJF_q2,t + NNJF_q3,{t-1} + NNJF_q4,{t-1}
 ```
 
-Implementing this with the variable the paper specifies (`EmpTotal`, per footnote 4) produces values 5-8× the paper's reported totals because EmpTotal is highly seasonal (teachers don't earn in summer). After testing 60+ alternative specifications via 6 parallel sub-agent investigations, two agents independently converged on the formula that actually produces the paper's reported numbers:
+Implementing this with the variable the paper specifies (`EmpTotal`, per footnote 4) produces values 5-8× the paper's reported totals because EmpTotal is highly seasonal (teachers don't earn in summer). A reader who implements Eq 2-3 as stated will not reproduce the paper's reported NNJF values.
+
+**v1.0 (independent) approach:** After testing 60+ alternative specifications via 6 parallel sub-agent investigations, two agents independently converged on a formula that produced the paper's distribution stats:
 
 ```
-NNJF_cst = avg over 4 school-year quarters of max(FrmJbLsS_q − FrmJbGnS_q, 0)
+NNJF_cst (v1.0) = avg over 4 school-year quarters of max(FrmJbLsS_q − FrmJbGnS_q, 0)
 ```
 
-Where `FrmJbLsS` and `FrmJbGnS` are QWI's *Firm Job Losses/Gains to Stable Employment* — variables that compute firm-level changes before aggregation. The paper doesn't reference either variable.
+**v2 (with authors' code) confirms the actual formula:** the authors' Stata code uses a different and simpler formula:
 
-A reader who implements Eq 2-3 as stated will not reproduce the paper's reported NNJF values.
+```
+NNJF_cst (authors) = sum over 4 school-year quarters of FrmJbLsS_q
+```
+
+`FrmJbLsS` is QWI's *Firm Job Losses to Stable Employment*. Note the authors' formula does NOT subtract `FrmJbGnS` (Firm Job Gains to Stable Employment), so the construct is *gross* firm-level job loss at contracting districts, not "net" in the sense the term "Net-Negative Job Flow" implies. The paper doesn't reference either variable, so a reader has no way to derive this from the published text alone.
+
+Both formulas reproduce the paper's Figure 2 Panel B distribution (median 108 exactly under either), but yearly trend magnitudes differ. v2.1 uses the authors' formula.
 
 ### Issue 2: Per-100 rates use inconsistent formulas across tables
 
@@ -75,33 +83,33 @@ Across the paper's tables and figures, NNJF/100 appears in mutually inconsistent
 | Table A7 (group × year) | 8.98 to 19.03 | 10× larger than Table A4 |
 | Table A8 (state pandemic) | medians 6.6-16.6 | similar to A7 |
 
-A 24-year mean cannot be 3.32 if every annual mean is < 1. These differences are too large to be explained by sampling. They imply the paper used at least three different formulas for the per-100 normalization, depending on the table. We empirically reverse-engineered the formula behind each table and replicate each one within ±10-15%. But there's no single per-100 formula that matches all tables — a reader picking the wrong one will get wildly different numbers.
+A 24-year mean cannot be 3.32 if every annual mean is < 1. These differences are too large to be explained by sampling. They imply the paper used at least three different formulas for the per-100 normalization, depending on the table. **v2 confirms this from the authors' code:** Table A2 uses `NNJF / 100` unweighted (just a rescale, not a per-employee rate); Tables A4 uses the same `NNJF / 100` but weighted by `1/FTE`; Tables A6/A7 use `NNJF / (Emp_Q3_lag / 100)` (an actual per-100-employees rate); Table A8 uses `NNJF / (Emp_Q3 / 100)`. v2.1 replicates each table with its specific formula — Table A2 matches the paper *exactly* (3.31 vs 3.32 mean; 1.08 vs 1.08 median), Table A7 matches within 0.5-0.8 across demographic groups, Table A8 within 50% on NNJF Total for 49 of 51 states. But the paper's documentation issue — same column header for four different formulas — remains; a reader picking the wrong one will get wildly different numbers.
 
-### Issue 3: No code release
+### Issue 3: No public code release
 
-The paper provides no replication archive (no GitHub, OSF, Dataverse, or supplementary code). The formulas in Equations 1-3 are not sufficient to reproduce the paper's reported values, and the appendix tables use mutually inconsistent definitions. Without code, every reader who tries to use the QWI approach has to reverse-engineer the implementation independently.
+The paper provides no public replication archive (no GitHub, OSF, Dataverse, or supplementary code). The formulas in Equations 1-3 are not sufficient to reproduce the paper's reported values, and the appendix tables use mutually inconsistent definitions. Without code, every reader who tries to use the QWI approach has to reverse-engineer the implementation independently.
 
-**v2.0 update:** The authors shared their Stata code privately after we completed the independent replication (v1.0). Incorporating that code resolves the formula-level issues: see "v2.0 findings from authors' code" below. The underlying paper text and tables remain as published; what changed is our ability to reproduce them precisely.
+**The authors shared their Stata code privately** after we completed the independent replication (v1.0). Incorporating that code (v2) resolves the formula-level issues: see "v2 findings from authors' code" below. The underlying paper text and tables remain as published; what changed is our ability to reproduce them precisely. An outside reader still cannot access the code — what's documented here is the gap between the published equations and the actual operational formulas, which a future public release of the code would close.
 
 ---
 
-## v2.0 findings from authors' Stata code
+## v2 findings from authors' Stata code (v2.0 and v2.1)
 
 The authors shared three Stata `.do` files privately (one main analysis file plus two data-pull scripts) after we completed the v1.0 independent replication. Incorporating their code into our Python pipeline produced near-exact matches to the paper's appendix tables and resolves the methodology questions we couldn't answer from the published text alone.
 
-The authors' code is **not redistributed** in this repository (their request).
+The authors' code is **not redistributed** in this repository .
 
 ### Methodology choices clarified by their code
 
-| Choice | Paper text | Authors' code | v1.0 (independent) | v2.0 (with code) |
+| Choice | Paper text | Authors' code | v1.0 (independent) | v2.1 (with code + NCES FTE) |
 |---|---|---|---|---|
 | NNJF formula | "Eq 2-3 using EmpTotal" | `sum(FrmJbLsS over 4 quarters)` (no `FrmJbGnS` subtraction) | `avg(max(FrmJbLsS − FrmJbGnS, 0))` | matches authors |
 | Quarter window for NNJF | Q1, Q2, Q3_lag, Q4_lag | `q1 + q2_lag + q3_lag + q4_lag` (lit. typo? — see open question) | school year (Q3_lag, Q4_lag, Q1, Q2) | school year (gives same result for distribution stats) |
 | Per-100 in Table A2 | "Per 100 describe per 100 employees" | `NNJF / 100`, **unweighted** | divided by ΣEmp_4Q | `NNJF / 100` unweighted = **exact match to paper** |
-| Per-100 in Table A4 | same note | `NNJF / 100`, **weighted by 1/FTE** | same | weighted by 1/emp_lag (proxy) — within 8% |
+| Per-100 in Table A4 | same note | `NNJF / 100`, **weighted by 1/FTE** | same | `NNJF / 100` weighted by 1/FTE (NCES CCD) — matches paper within MAE 0.044 |
 | Per-100 in Tables A6/A7 | same note | `NNJF / (EmpTotal_Q3_lag / 100)` | divided by ΣEmp_4Q | `NNJF / (EmpTotal_Q3_lag / 100)` |
 | Per-100 in Table A8 | same note | `NNJF / (EmpTotal_Q3 / 100)` | divided by ΣEmp_4Q | `NNJF / (EmpTotal_Q3 / 100)` |
-| Weighting | "inverse of educator count" | `1/FTE` from NCES ELSI | `1/EmpTotal_Q4_lag` | `1/emp_lag` (ELSI integration deferred to v2.1) |
+| Weighting | "inverse of educator count" | `1/FTE` from NCES ELSI | `1/EmpTotal_Q4_lag` | `1/FTE` from NCES CCD LEA-staff teacher counts (98% coverage; fallback to `1/EmpTotal` for ~2%) |
 | Outlier rule | Footnote 2: "33% deviation" | `value > 1.33 × county_mean` AND `value < lower_bound` AND `mean_turnover ≥ 0.7 → drop county` | only the high-side 33% rule | all three rules implemented |
 | Special drops | none mentioned | hardcoded drop of FIPS 24003 (Anne Arundel County, MD) | not dropped | dropped (matches authors) |
 
@@ -123,7 +131,7 @@ We suspect `q2_lag` is a typo (should be `q2`). The right answer doesn't materia
 | Table A2 NNJF median (count) | 43 | (didn't match) | **42** | **42** | **within 2%** |
 | Table A2 NNJF/100 mean | 3.32 | (didn't match) | **3.31** | **3.31** | **exact** |
 | Table A2 NNJF/100 median | 1.08 | (didn't match) | **1.08** | **1.08** | **exact** |
-| Table A4 NNJF Total 2020 (K) | 224.9 | 252.7 | 206.5 | 273.8 | over by 22% (QWI revisions since paper extraction date 2025-03) |
+| Table A4 NNJF Total 2020 (K) | 224.9 | 252.7 | 206.5 | 273.8 | over by 22% in v2.1; see Claim 6 caveat — likely QWI vintage revisions and/or a weighting-scheme detail not captured even by the authors' code we have |
 | Figure 2 Panel B unweighted median | 108 | 108 | **108** | **108** | **exact** (preserved) |
 | Figure 2 Panel B unweighted P99 | 3,660 | 3,602 | 3,613 | 3,613 | within 1.3% |
 | Table A5 Non-White coef | +0.0960 | +0.0956 | +0.0956 | +0.0956 | within 0.0004 (preserved) |
@@ -214,11 +222,12 @@ Full per-file output (per-method extraction CSVs, per-method notes, reconciliati
   - **Maryland**: LEA-level attrition rates for SY 2020-21→2021-22 (TWS-2022 page 7) and SY 2022-23→2023-24 (TWS-2024 page 11), extracted via PDF coordinate-matching from bar charts. **2021-22→2022-23 LEA-level attrition** still not found — appears to require Playwright-driven extraction from the MSDE Educator Workforce Power BI Dashboard, which we did not pursue.
 - NCES Common Core of Data + EDGE shapefile for LEA → county FIPS crosswalk.
 
-**Method:**
+**Method (v2.1):**
 - Turnover: implemented from paper Equation 1 directly using QWI `EmpTotal` and `HirN`. Replicates exactly.
-- NNJF: reverse-engineered via 6 parallel sub-agent investigations testing 60+ specifications across 4 dimensions (count variable, time aggregation, denominator, sample filter).
-- Weighting: 1/`EmpTotal_Q4_lag` for cross-county aggregates (per paper text).
-- Outlier rule: drop county-year if leavers deviate from county mean by ≥33% (per paper footnote 2). Removes ~23% of county-years.
+- NNJF: `sum(FrmJbLsS_q)` over the four school-year quarters (Q3_lag + Q4_lag + Q1 + Q2), per the authors' Stata code. (v1.0 reverse-engineered an alternative `avg(max(FrmJbLsS_q − FrmJbGnS_q, 0))` formula via 6 parallel sub-agent investigations testing 60+ specifications across 4 dimensions; both reproduce the paper's Figure 2 Panel B distribution exactly.)
+- Per-100 normalization: table-specific per authors' code — `NNJF / 100` for Tables A2/A4; `NNJF / (Emp_Q3_lag / 100)` for Tables A6/A7; `NNJF / (Emp_Q3 / 100)` for Table A8.
+- Weighting: `1/FTE` (NCES CCD teacher FTE aggregated to county-year, 98% coverage of our panel) per authors' code. v1.0 used `1/EmpTotal_Q4_lag` inferred from paper text.
+- Outlier rule (per authors' Stata code): (a) drop county-year if leavers/emp/turnover > 1.33 × county mean (one-sided, applied successively); (b) drop low values (leavers ≤ 1, emp ≤ 1, turnover ≤ 0.001); (c) drop entire counties whose mean turnover ≥ 0.7. Plus hardcoded drop of FIPS 24003 (Anne Arundel County, MD) — redundant with (a) and (b) in practice but the authors include it explicitly. Together these remove ~21% of county-years.
 
 **Validation:** Reproduced Figure 1 with paper's vintage data (recovered separately for each state by parallel sub-agent investigation), Appendix Tables A2-A8, and the 6 main figures.
 
@@ -236,17 +245,19 @@ Full per-file output (per-method extraction CSVs, per-method notes, reconciliati
 
 Coefficients match within 0.0004 to 0.0008; constants match within 0.0002 (effectively zero).
 
-### Year-by-year turnover (Table A4 selected rows)
+### Year-by-year turnover (Table A4 selected rows, v2.1)
+
+All values weighted by `1/FTE` (NCES CCD teacher FTE) per authors' Stata code.
 
 | Year | My Turnover Mean | Paper | My NNJF Total (K) | Paper |
 |---|---|---|---|---|
-| 2001 | 27.7% | 26.6% | 159.8 | 120.6 |
-| 2019 | 24.7% | 24.1% | 174.2 | 176.2 |
-| **2020 (pandemic)** | **30.4%** | **29.7%** | **252.7** | **224.9** |
-| 2021 | 24.6% | 20.7% | 146.5 | 150.4 |
-| 2023 | 26.8% | 27.2% | 161.9 | 162.1 |
+| 2001 | 27.0% | 26.6% | 124.6 | 120.6 |
+| 2019 | 23.9% | 24.1% | 176.8 | 176.2 |
+| **2020 (pandemic)** | **29.2%** | **29.7%** | **273.8** | **224.9** |
+| 2021 | 20.8% | 20.7% | 145.9 | 150.4 |
+| 2023 | 26.4% | 27.2% | 161.5 | 162.1 |
 
-Turnover within 1-2 pp for most years. NNJF totals within ±5% for recent years; pandemic year is 1.12× paper. The 2021 turnover outlier (mine 24.6% vs paper 20.7%) is the largest discrepancy and most plausibly reflects QWI revisions between March 2025 (paper's extraction) and May 2026 (ours).
+Turnover matches within 0.1-0.8 pp for every selected year. NNJF totals match within ±5% for non-pandemic years (e.g., 2019: 176.8 vs 176.2 — 0.3%; 2021: 145.9 vs 150.4 — 3%). The pandemic year sits 22% above paper, a discrepancy that did not exist in the same direction in v1.0 (where it was +12%) — v2.1's 1/FTE weighting (per authors' code) produces a higher 2020 total than v2.0's 1/emp_lag proxy did. See "v2 sensitivity" section above for the full magnitude range across weighting schemes.
 
 ### Validation correlations (Figure 1)
 
@@ -259,17 +270,18 @@ Turnover within 1-2 pp for most years. NNJF totals within ±5% for recent years;
 
 Within-state correlations *beat* the paper's pooled R for employment and leavers. The log-log pooled R is now within 0.01-0.04 of the paper's reported R for emp and leavers, thanks to recovering PA all-staff data computed from PDE's Professional Personnel Individual Staff records (a separate PA agent located them; see `state_data_hunt_PA_v2.md`). The remaining gap is attributable to missing MD data (paper had 3 states; we have 2).
 
-### Figure 2 Panel B (NNJF distribution): exact match
+### Figure 2 Panel B (NNJF distribution, v2.1): essentially exact
 
-| Statistic | Mine | Paper |
+| Statistic | Mine (v2.1) | Paper |
 |---|---|---|
 | Unweighted median (figure annotation) | **108** | 108 |
-| Unweighted P99 (figure annotation) | **3,602** | 3,660 |
-| Weighted median (Table A2) | **41** | 43 |
-| Weighted mean (Table A2) | **74.1** | 73.3 |
-| Weighted p25 / p75 (Table A2) | **23 / 75** | 24 / 77 |
+| Unweighted P99 (figure annotation) | 3,613 | 3,660 |
+| Unweighted mean (Table A2) | 329.41 | 332 (= paper's NNJF/100 mean × 100) |
+| Unweighted mean of NNJF/100 (Table A2) | **3.31** | 3.32 |
+| Unweighted median of NNJF/100 (Table A2) | **1.08** | 1.08 |
+| Table A2 NNJF count median (unweighted) | 42 | 43 |
 
-(Paper uses unweighted distribution for the figure annotation and weighted distribution for Table A2 — we match both.)
+(Paper's Table A2 NNJF row is the unweighted distribution of the NNJF count and NNJF/100. v1.0 attempted to match the same row using a weighted distribution and a different formula and could not — see the "v2 findings" section above for the formula reconciliation.)
 
 ---
 
@@ -358,10 +370,10 @@ qwi_aeraopen/
 
 ## Conclusion
 
-The paper's substantive claims about K-12 education labor market dynamics — including the pandemic spike, racial/ethnic disparities, educational attainment gradient, and the validity of QWI as a data source — **hold up under replication using only the publicly available QWI API and state administrative data**.
+The paper's substantive claims about K-12 education labor market dynamics — including the pandemic spike, racial/ethnic disparities, educational attainment gradient, and the validity of QWI as a data source — **hold up under replication using only the publicly available QWI API and state administrative data**. Every directional/comparative finding survives every methodology variant we tested.
 
-The two technical issues we surfaced (literal NNJF formula doesn't produce the reported values; per-100 rates use different formulas across tables) are documentation issues, not problems with the underlying empirical findings.
+The technical issues we surfaced (literal NNJF formula in the paper doesn't produce the reported values; per-100 rates use different formulas across tables) are documentation issues, not problems with the underlying empirical findings. The authors' code (v2) confirms the actual operational formulas; the paper's published equations remain incomplete.
 
-Replication was more difficult because data and code were not available. We needed 6 parallel sub-agent investigations testing 60+ specifications to reverse-engineer the NNJF formula, and 4 parallel state-data hunts (followed by deeper second-round searches) to recover the validation datasets used in Figure 1. Several pieces of the analysis remain only partially replicable as a result (the 2021-22→2022-23 Maryland LEA attrition data, the exact state-data populations the paper used for PA, and the precise per-100 NNJF normalization in each table).
+The independent (v1.0) replication was difficult because the paper's published equations and table notes were not sufficient to reproduce its reported values: we needed 6 parallel sub-agent investigations testing 60+ specifications to reverse-engineer an NNJF formula, and 4 parallel state-data hunts to recover the validation datasets used in Figure 1. v2 (with the authors' code, shared privately after v1.0) closed the formula-level gaps. **What remains genuinely unresolved** for an outside reader: (a) the 2021-22→2022-23 Maryland LEA attrition data is locked behind a JavaScript Power BI dashboard; (b) the paper's main text and Table A4 disagree on whether 29.7% in 2020 is a Mean or Median (paper-internal inconsistency); (c) the magnitude of "education jobs lost during the pandemic" is highly sensitive to the choice of weighting scheme (see the v2 sensitivity caveats above), with the paper's 224.9K sitting in the middle of a wide range that includes 110K (truly net) and 7.6M (population-weighted).
 
 The 6 state administrative CSVs feeding Figure 1 were independently re-extracted by three parallel agents (pdfplumber tables, vision-only, pdfplumber text+regex), cell-level reconciled against the existing CSVs, and semantically audited against the source PDFs. All 6 files VERIFIED — zero substantive disagreements across 1,898 cells. Sub-findings (source PDF mis-labeling, JLARC's own total-row arithmetic error, snapshot-date change between SY 2022-23 and SY 2023-24, 5-year vs assumed 3-year PPA window, column-name ambiguity) are recorded above and in `replication/output/validation/VALIDATION_SUMMARY.md`.
